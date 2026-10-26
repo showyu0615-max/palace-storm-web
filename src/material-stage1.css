@@ -1,0 +1,95 @@
+/* First visual integration stage. The other eleven room scenes keep their current components. */
+.map-canvas.has-map-art{height:788px;background:url('../assets/backgrounds/bg_map_palace.png') center/100% 100% no-repeat}
+.has-map-art>.terrain,.has-map-art .map-compass{display:none}
+.has-map-art .map-node{width:116px;height:88px;filter:drop-shadow(0 3px 8px #10251e66)}
+.has-map-art .map-node svg{display:none}
+.has-map-art .map-node:before{content:"";display:block;position:absolute;width:36px;height:40px;left:40px;top:5px;background:url('../assets/ui/map_marker.png') center/contain no-repeat}
+.has-map-art .map-node.done:before{background-image:url('../assets/ui/map_marker_complete.png')}
+.has-map-art .map-node .node-name{bottom:0;font-size:12px;letter-spacing:1px;background:#233d32dd;color:#f5e5be;border-color:#b4975b;left:0;right:0}
+.has-map-art .map-node.selected .node-name{background:#ead8a9;color:#243c30;box-shadow:0 0 13px #eacc77}
+.has-map-art .map-node.locked{opacity:.68;filter:grayscale(.8)}
+.has-map-art .map-node .node-number{top:3px;right:12px;width:20px;height:20px;font-size:9px}
+.has-map-art .map-node.available:not(.done):after{left:27px;top:15px}
+.room-scene.has-kitchen-art{background:url('../assets/backgrounds/bg_01_kitchen.png') center/cover no-repeat;filter:none!important;border-color:#655b3d}
+.has-kitchen-art>.beam,.has-kitchen-art>.window-lattice,.has-kitchen-art>.shelf,.has-kitchen-art>.table{display:none}
+.has-kitchen-art .npc-hotspot{left:7%;right:auto;top:auto;bottom:40px;width:155px;height:350px}
+.has-kitchen-art .portrait-mini{display:none}
+.npc-art{object-fit:contain;pointer-events:none}
+.npc-hotspot>.npc-art{width:100%;height:310px;display:block;filter:drop-shadow(0 8px 8px #172e2577)}
+.npc-hotspot>.npc-art[hidden]{display:none}
+.has-kitchen-art .npc-hotspot b{font-size:11px;margin:-1px 0 0;padding:7px}
+.has-kitchen-art .scene-clue{width:96px;height:112px;min-height:0;bottom:auto;top:auto}
+.has-kitchen-art .scene-clue:nth-child(1){left:40%;top:45%}
+.has-kitchen-art .scene-clue:nth-child(2){left:67%;top:39%}
+.has-kitchen-art .scene-clue:nth-child(3){left:52%;top:57%}
+.prop-image{width:76px;height:76px;object-fit:contain;filter:drop-shadow(0 4px 5px #182b2480)}
+.has-kitchen-art .scene-clue:hover .prop-image{filter:drop-shadow(0 0 9px #f7cf74)}
+.has-kitchen-art .scene-clue b{background:#293d2be8;border:1px solid #b49b62;font-size:10px}
+.has-kitchen-art .mechanism{right:6%;bottom:25px;background:#1e3c30d9 url('../assets/props/food_box.png') center 4px/75px auto no-repeat;padding-top:62px;min-height:125px}
+.has-kitchen-art .mechanism .lock-symbol{display:none}
+.has-kitchen-art .scene-footer{background:#1e302ac9;right:0;left:0;text-align:center}
+.clue-art.with-asset{width:180px;height:180px;background:none;border:0}
+.clue-prop{width:100%;height:100%;object-fit:contain}
+.dialog-scene.kitchen-dialogue{background:linear-gradient(90deg,#172c3055,#172c30bb),url('../assets/backgrounds/bg_01_kitchen.png') center 45%/cover no-repeat;height:310px}
+.has-character-art .dialog-portrait{display:none}
+.dialog-scene>.npc-art{position:absolute;left:13%;bottom:-52px;width:250px;height:380px;object-position:bottom;z-index:1;filter:drop-shadow(0 12px 12px #10291e66)}
+.has-character-art .dialog-box{background:#152d32 url('../assets/ui/dialogue_frame.png') center/100% 100% no-repeat;padding:35px 55px 28px;min-height:240px}
+.has-character-art .speaker{margin-left:12px}
+.has-character-art #dialog-text{font-size:19px}
+.film-full-art{width:100%;height:100%;object-fit:cover;display:block}
+.film-shade{background:linear-gradient(0deg,#0a2228f5,transparent 78%),linear-gradient(90deg,#0e282744,transparent 65%)}
+.paper-dialog{background:#f8efdb url('../assets/ui/parchment_panel.png') center/100% 100% no-repeat;padding:42px}
+.primary{background:#244a3b url('../assets/ui/choice_button.png') center/100% 100% no-repeat;border-color:transparent;padding-left:24px;padding-right:24px;color:#fff1cf}
+.primary:hover{background-color:#305443}
+.victory-seal{width:85px;height:100px;border:0;border-radius:0;background:url('../assets/props/evidence_seal.png') center/contain no-repeat;color:transparent;padding:0;transform:none}
+@media(max-width:720px){
+.has-map-art .map-node{width:116px;height:88px}
+.has-kitchen-art .npc-hotspot{left:3%;bottom:30px;width:108px;height:260px}
+.npc-hotspot>.npc-art{height:222px}
+.has-kitchen-art .npc-hotspot b{font-size:9px;padding:5px}
+.has-kitchen-art .scene-clue{width:72px;height:95px}
+.prop-image{width:58px;height:58px}
+.has-kitchen-art .scene-clue:nth-child(1){left:32%;top:36%}
+.has-kitchen-art .scene-clue:nth-child(2){left:69%;top:34%}
+.has-kitchen-art .scene-clue:nth-child(3){left:48%;top:57%}
+.has-kitchen-art .mechanism{width:87px;right:3%;bottom:20px;background-size:58px auto;padding-top:46px;min-height:110px}
+.has-kitchen-art .scene-clue b{font-size:9px;padding:4px;white-space:nowrap}
+.dialog-scene.kitchen-dialogue{height:240px}
+.dialog-scene>.npc-art{left:6%;width:185px;height:290px;bottom:-38px}
+.has-character-art .dialog-box{padding:28px 22px 25px}
+.has-character-art #dialog-text{font-size:16px;min-height:125px}
+.has-character-art .speaker{font-size:15px;margin-left:5px}
+.paper-dialog{padding:30px}
+.dialog-actions{gap:6px}
+.dialog-actions button{font-size:10px;padding:8px 10px}
+}
+
+.primary{background-color:transparent;background-size:100% 300%;min-height:48px}.primary:hover{background-color:transparent;filter:brightness(1.12)}.dialog-scene>.hero-art{position:absolute;right:20%;bottom:-65px;width:235px;height:380px;object-fit:contain;z-index:1;pointer-events:none;filter:drop-shadow(0 12px 12px #10291e66)}.has-kitchen-art .npc-hotspot{left:5%;width:185px;height:395px}.npc-hotspot>.npc-art{height:355px}@media(max-width:720px){.dialog-scene>.hero-art{right:10%;width:150px;height:265px;bottom:-40px;opacity:.9}.dialog-scene>.npc-art{left:1%;width:165px}.has-kitchen-art .npc-hotspot{left:0;width:108px;height:260px}.npc-hotspot>.npc-art{height:222px}.dialog-scene>span{right:5%;font-size:18px;letter-spacing:6px;z-index:2}}
+
+.dialog-scene>.npc-art{height:330px;bottom:-48px}.dialog-scene>.hero-art{height:330px;bottom:-50px}.has-character-art .dialog-box{background-size:100% 165%}@media(max-width:720px){.dialog-scene>.npc-art{height:260px;bottom:-35px}.dialog-scene>.hero-art{height:240px;bottom:-30px}}
+/* Stage 1B: use the earned/locked marker pair and the supplied twelve-slot evidence frame. */
+.has-map-art .map-node.locked:before{background-image:url('../assets/ui/map_marker_locked.png')}
+.journal-tabs{display:flex;gap:10px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}
+.journal-tabs button{font-size:13px}
+.journal-tabs button[aria-pressed=true]{background:var(--jade);color:#f8e8ba;border-color:var(--jade)}
+.evidence-board{position:relative;width:100%;aspect-ratio:1422/1106;background:url('../assets/ui/inventory_frame.png') center/100% 100% no-repeat}
+.evidence-board h3{position:absolute;left:22%;right:22%;top:11%;margin:0;text-align:center;font-size:23px;letter-spacing:4px;color:#3d4b3b}
+#evidence-slots{position:absolute;left:12.2%;right:12.2%;top:22.2%;bottom:8.8%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));column-gap:4%;row-gap:4%}
+.evidence-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:0;background:transparent;border:0;border-radius:10px;padding:8px;overflow:hidden}
+.evidence-slot:hover{background:#c4a65e33}
+.evidence-slot:disabled{opacity:1;color:#9b967e;cursor:default;background:transparent}
+.evidence-slot small{font-size:11px;white-space:nowrap;color:#6e725b;margin-top:4px}
+.evidence-item{width:65%;height:70%;object-fit:contain;filter:drop-shadow(0 3px 3px #293b2a44)}
+.evidence-placeholder{font:30px serif;color:var(--jade);padding:7px;border:3px double #a08a57;background:#d8cc9d}
+.evidence-empty{font:26px serif;color:#a9a28a}
+#evidence-detail{border-top:1px solid var(--line);padding-top:20px;scroll-margin:20px}
+#evidence-detail h3{font-size:23px}
+#evidence-detail p{font-size:13px;line-height:1.9}
+.evidence-conclusion{background:#e6e5cc;padding:14px;border-left:3px solid var(--jade)}
+.victory-cg{display:block;width:100%;height:230px;object-fit:cover;border:1px solid #ab8c55;border-radius:5px;margin:0 0 22px}
+#victory.with-cg{width:min(740px,calc(100% - 30px));max-height:92dvh}
+@media(max-width:720px){.journal-tabs button{font-size:12px}.evidence-board h3{top:11.4%;font-size:13px;letter-spacing:1px}#journal{padding:23px 16px}.evidence-slot{padding:3px;border-radius:4px}.evidence-item{width:75%;height:63%}.evidence-slot small{font-size:8px;margin-top:1px}.evidence-empty{font-size:17px}.evidence-placeholder{font-size:17px;padding:3px;border-width:1px}.victory-cg{height:165px;margin-bottom:18px}#victory.with-cg{padding:28px 20px}#evidence-detail h3{font-size:20px}#evidence-detail p{font-size:12px}}
+
+#journal.paper-dialog{background-image:none}
+
+#victory-cg{height:auto;aspect-ratio:1672/941;object-fit:contain}

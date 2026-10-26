@@ -1,0 +1,46 @@
+/* The garden reuses the pond/pavilion area of the existing palace illustration. */
+.room-scene.has-garden-art{background:#557666 url('../assets/backgrounds/bg_map_palace.png') 10% 34%/280% auto no-repeat;border-color:#526a4b;filter:none!important}
+.has-garden-art>.beam,.has-garden-art>.window-lattice,.has-garden-art>.shelf,.has-garden-art>.table{display:none}
+.has-garden-art .scene-banner{background:#173d35dd}
+.has-garden-art .npc-hotspot{left:5%;right:auto;top:auto;bottom:35px}
+.has-garden-art .scene-clue:nth-child(1){left:30%;top:50%;bottom:auto}
+.has-garden-art .scene-clue:nth-child(2){left:68%;top:45%;bottom:auto}
+.has-garden-art .scene-clue:nth-child(3){left:50%;top:17%;bottom:auto}
+
+
+.has-garden-art .mechanism{right:6%;bottom:25px;background:#1e4439dd}
+.has-garden-material .dialog-scene{background:linear-gradient(90deg,#21493433,#173e3b99),url('../assets/backgrounds/bg_map_palace.png') 8% 34%/240% auto no-repeat}
+.has-garden-material .dialog-box{background:#152d32 url('../assets/ui/dialogue_frame.png') center/100% 165% no-repeat;padding:35px 55px 28px}
+
+
+.garden-patrol-board{background:linear-gradient(#e6dfba33,#376c6244),url('../assets/backgrounds/bg_map_palace.png') 10% 34%/230% auto no-repeat;border:2px solid #677e56;border-radius:6px;overflow:hidden}
+.garden-patrol-board>svg{display:block;width:100%;max-height:390px;background:#e7edcd33}
+.garden-patrol-board .route-a{fill:none;stroke:#c07d32;stroke-width:6;stroke-dasharray:9 7}
+.garden-patrol-board .route-b{fill:none;stroke:#f5efc7;stroke-width:5;stroke-dasharray:5 7}
+.garden-patrol-board .roof{fill:#56785d}.garden-patrol-board .wall{fill:#ead8aa}.garden-patrol-board .wood{fill:#775137}.garden-patrol-board .plaque{fill:#273f31}.garden-patrol-board .roof-detail{fill:none;stroke:#dab579;stroke-width:2}
+.guard circle{fill:#c47c30;stroke:#fff0b9;stroke-width:3}.guard-1 circle{fill:#294f72}.guard text{fill:#fff7d2;font:15px sans-serif;font-weight:bold}
+.route-caption{fill:#173b32;font:13px sans-serif;stroke:#faf4d9;stroke-width:3;paint-order:stroke}
+.garden-status{background:#294f40;color:#f9e6b3;padding:12px;text-align:center;line-height:1.8;margin:12px 0 22px;font-size:16px;border-radius:4px}
+.garden-clock-control{flex:1 0 100%;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border:1px solid #b7ae87;background:#e7e8cd;padding:18px;border-radius:5px}
+.garden-clock-control label{flex-basis:100%;font-size:13px;color:#375b43;margin-bottom:5px}
+.garden-clock-control input[type=number]{width:100px;min-width:60px;padding:10px;border:1px solid #b6a46e;background:#fff5d9;color:#25463c;font-size:24px;text-align:center;border-radius:4px}
+.garden-clock-control input[type=range]{width:100%;accent-color:#2a5b40;min-height:28px}
+.garden-clock-control button{font-size:12px}
+@media(max-width:720px){.room-scene.has-garden-art{background-size:360% auto;background-position:8% 32%}.has-garden-art .npc-hotspot{left:2%;bottom:35px}.has-garden-art .scene-clue:nth-child(1){left:31%;top:48%}.has-garden-art .scene-clue:nth-child(2){left:72%;top:40%}.has-garden-art .scene-clue:nth-child(3){left:48%;top:15%}.has-garden-material .dialog-box{padding:28px 22px 25px}.has-garden-material .dialog-scene{background-size:360% auto;background-position:8% 30%}.garden-clock-control{gap:6px;padding:13px}.garden-clock-control input[type=number]{width:68px;font-size:21px}.garden-clock-control button{font-size:10px;padding:9px}.garden-status{font-size:13px}.route-caption{font-size:13px}}
+/* Garden material batch: replace provisional map crops without changing puzzle rules. */
+.room-scene.has-garden-art{background-image:url('../assets/backgrounds/bg_02_garden.png');background-position:center;background-size:cover}
+.has-garden-art .portrait-mini{display:none}
+.has-garden-art .npc-hotspot{left:5%;bottom:35px;width:165px;height:355px}
+.has-garden-art .npc-hotspot>.npc-art{height:315px}
+.has-garden-art .npc-hotspot b{font-size:11px;padding:7px}
+.has-garden-art .scene-clue{width:110px;height:140px}
+.has-garden-art .scene-clue .prop-image{width:90px;height:100px;object-fit:contain}
+.has-garden-art .scene-clue:nth-child(1){left:30%;top:44%}
+.has-garden-art .scene-clue:nth-child(2){left:71%;top:37%}
+.has-garden-art .scene-clue:nth-child(3){left:49%;top:15%}
+.garden-flower-art{position:absolute;left:42%;bottom:25px;width:135px;height:135px;object-fit:contain;pointer-events:none;z-index:2;filter:drop-shadow(0 5px 6px #132c2877)}
+.has-garden-material .dialog-scene{background:linear-gradient(90deg,#21493433,#173e3b99),url('../assets/backgrounds/bg_02_garden.png') center/cover no-repeat}
+.garden-patrol-board{background-image:linear-gradient(#e6dfba33,#376c6244),url('../assets/backgrounds/bg_02_garden.png');background-size:cover;background-position:center}
+@media(max-width:720px){.room-scene.has-garden-art{background-size:auto 100%;background-position:55% center}.has-garden-art .npc-hotspot{left:0;bottom:25px;width:110px;height:260px}.has-garden-art .npc-hotspot>.npc-art{height:220px}.has-garden-art .npc-hotspot b{font-size:9px;padding:5px}.has-garden-art .scene-clue{width:80px;height:108px}.has-garden-art .scene-clue .prop-image{width:65px;height:76px}.has-garden-art .scene-clue:nth-child(1){left:30%;top:41%}.has-garden-art .scene-clue:nth-child(2){left:74%;top:34%}.has-garden-art .scene-clue:nth-child(3){left:49%;top:12%}.garden-flower-art{left:40%;width:94px;height:94px;bottom:22px}.has-garden-material .dialog-scene{background-size:cover;background-position:center}}
+
+.has-garden-material .dialog-scene{height:310px}@media(max-width:720px){.has-garden-material .dialog-scene{height:240px}}

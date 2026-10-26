@@ -1,0 +1,16 @@
+/* Completed scene images for stages 5–12. */
+.room-scene.has-later-material{background:var(--room-art) center/cover no-repeat;filter:none!important;border-color:#706048}
+.has-later-material>.beam,.has-later-material>.window-lattice,.has-later-material>.shelf,.has-later-material>.table,.has-later-material .portrait-mini{display:none}
+.has-later-material .npc-hotspot{left:3%;right:auto;top:auto;bottom:35px;width:180px;height:390px}
+.has-later-material .npc-hotspot>.npc-art{height:350px}
+.has-later-material .npc-hotspot b{font-size:11px;padding:7px}
+.has-later-material .scene-clue{width:110px;height:135px;bottom:auto}
+.has-later-material .scene-clue .prop-image{width:90px;height:100px;object-fit:contain}
+.has-later-material .scene-clue:nth-child(1){left:32%;top:42%}
+.has-later-material .scene-clue:nth-child(2){left:68%;top:16%}
+.has-later-material .scene-clue:nth-child(3){left:62%;top:49%}
+.has-later-material .scene-clue b{background:#253e31ee;border:1px solid #b49b62;font-size:10px}
+.has-later-material .mechanism{right:5%;bottom:25px;background:#2e4033ee}
+.has-later-material .dialog-scene{height:310px;background:linear-gradient(90deg,#263d3533,#182f3377),var(--room-art) center/cover no-repeat}
+.has-later-material .dialog-box{background:#152d32 url('../assets/ui/dialogue_frame.png') center/100% 165% no-repeat;padding:35px 55px 28px}
+@media(max-width:720px){.room-scene.has-later-material{background-size:auto 100%;background-position:center}.has-later-material .npc-hotspot{left:0;bottom:25px;width:110px;height:270px}.has-later-material .npc-hotspot>.npc-art{height:230px}.has-later-material .npc-hotspot b{font-size:9px;padding:5px}.has-later-material .scene-clue{width:80px;height:105px}.has-later-material .scene-clue .prop-image{width:66px;height:76px}.has-later-material .scene-clue:nth-child(1){left:31%;top:40%}.has-later-material .scene-clue:nth-child(2){left:71%;top:12%}.has-later-material .scene-clue:nth-child(3){left:61%;top:43%}.has-later-material .dialog-scene{height:240px}.has-later-material .dialog-box{padding:28px 22px 25px}}
