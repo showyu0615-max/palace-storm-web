@@ -1,63 +1,69 @@
-/* Original pentatonic instrumental score, synthesized locally with Web Audio. */
+/* User-provided scene music; MP3 files remain unchanged in music/. */
 (function(){
   'use strict';
-  const button=document.getElementById('music'),slider=document.getElementById('music-volume');
-  const KEY='palace-background-music-v1';
-  let enabled=true,volume=.25,unlocked=false,context,master,timer,pauseTimer,next=0,step=0;
-  try{const saved=JSON.parse(localStorage.getItem(KEY));if(saved&&typeof saved.enabled==='boolean'&&Number.isFinite(saved.volume)){enabled=saved.enabled;volume=Math.max(0,Math.min(1,saved.volume));}}catch{/* Optional local preference. */}
-  // Eight phrases; one beat per step at 76 BPM, with space for dialogue.
-  const melody=[
-    72,null,76,74,72,69,67,null, 69,72,74,null,76,74,72,null,
-    67,69,72,74,72,null,69,null, 67,64,67,69,67,null,64,null,
-    72,76,79,null,76,74,72,null, 69,72,76,74,72,69,67,null,
-    64,67,69,72,69,null,67,null, 64,62,64,67,60,null,null,null
-  ];
-  const roots=[48,45,43,48,48,45,43,48],beat=60/76;
+  const $=id=>document.getElementById(id),button=$('music'),slider=$('music-volume'),files=window.PalaceAudioTracks;
+  const KEY='palace-background-music-v1',tracks=new Map(),pending=new Set(),failed=new Set();
+  let enabled=true,volume=.25,unlocked=false,wanted='',fadeTimer,effect;
+  try{const saved=JSON.parse(localStorage.getItem(KEY));if(saved&&typeof saved.enabled==='boolean'&&Number.isFinite(saved.volume)){enabled=saved.enabled;volume=Math.max(0,Math.min(1,saved.volume));}}catch{/* Optional preference. */}
+  function selectTrack(){
+    const late=Number($('progress').textContent.match(/證據\s*(\d+)/)?.[1])>=8;
+    if($('victory').open||$('journal').open&&!$('evidence-case').hidden)return 'victory';
+    if($('journal').open)return late?'late':'explore';
+    if($('hall-entry').open||$('world').classList.contains('travelling')||!$('world').hidden)return 'map';
+    return late?'late':!$('workbench').hidden?'puzzle':'explore';
+  }
   function render(){
-    slider.value=String(Math.round(volume*100));button.setAttribute('aria-pressed',String(enabled));
-    button.textContent=!enabled?'配樂：關':volume===0?'配樂：靜音':!unlocked?'配樂：待播放':document.hidden?'配樂：暫停':context?.state==='running'?'配樂：開':'配樂：點擊播放';
+    slider.value=String(Math.round(volume*100));button.setAttribute('aria-pressed',String(enabled));button.dataset.track=wanted;
+    button.title='目前配樂：'+({map:'Track 1 · 宮道慢行',explore:'Track 2 · 廳堂搜證',puzzle:'Track 3 · 算籌心計',late:'Track 4 · 深宮暗湧',victory:'Track 5 · 證據入匣'}[wanted]);
+    button.textContent=!enabled?'配樂：關':volume===0?'配樂：靜音':!unlocked?'配樂：待播放':document.hidden?'配樂：暫停':failed.has(wanted)?'配樂：檔案無法播放':tracks.get(wanted)?.paused===false?'配樂：開':'配樂：點擊播放';
   }
-  function save(){try{localStorage.setItem(KEY,JSON.stringify({enabled,volume}));}catch{/* Playing does not require storage. */}}
-  function note(midi,time,strength,length,plucked){
-    const hz=440*Math.pow(2,(midi-69)/12);
-    for(const [partial,level]of(plucked?[[1,.8],[2,.22],[3,.08]]:[[1,1]])){
-      const osc=context.createOscillator(),gain=context.createGain();osc.type='sine';osc.frequency.value=hz*partial;
-      gain.gain.setValueAtTime(.0001,time);gain.gain.exponentialRampToValueAtTime(strength*level,time+(plucked?.012:.35));gain.gain.exponentialRampToValueAtTime(.0001,time+length);
-      osc.connect(gain);gain.connect(master);osc.start(time);osc.stop(time+length+.02);
+  function save(){try{localStorage.setItem(KEY,JSON.stringify({enabled,volume}));}catch{/* Storage is optional. */}}
+  function music(name){
+    if(!tracks.has(name)){
+      const audio=new Audio();audio.src=files[name];audio.loop=true;audio.preload='none';audio.volume=0;audio.dataset.palaceTrack=name;audio.hidden=true;document.body.append(audio);
+      audio.addEventListener('error',()=>{failed.add(name);render();});tracks.set(name,audio);
     }
+    return tracks.get(name);
   }
-  function schedule(){
-    if(next<context.currentTime)next=context.currentTime+.06;
-    while(next<context.currentTime+.5){
-      const index=step%melody.length;
-      if(melody[index]!==null)note(melody[index],next,.18,beat*2.2,true);
-      if(index%8===0){const root=roots[index/8];note(root,next,.11,beat*7.5,false);note(root+7,next+beat*.5,.035,beat*6,false);}
-      step++;next+=beat;
+  function fade(active){
+    clearInterval(fadeTimer);
+    const start=performance.now(),duck=effect&&!effect.paused ? .45 : 1;
+    const plan=[...tracks.values()].map(audio=>({audio,from:audio.volume,to:audio===active?volume*duck:0}));
+    fadeTimer=setInterval(()=>{
+      const t=Math.min(1,(performance.now()-start)/900);
+      for(const {audio,from,to}of plan){audio.volume=from+(to-from)*t;if(t===1&&to===0)audio.pause();}
+      if(t===1){clearInterval(fadeTimer);fadeTimer=null;render();}
+    },40);
+  }
+  function pauseAll(){clearInterval(fadeTimer);fadeTimer=null;for(const audio of tracks.values()){audio.volume=0;audio.pause();}if(effect)effect.pause();}
+  function sync(){
+    wanted=selectTrack();
+    if(document.hidden){pauseAll();render();return;}
+    const active=enabled&&unlocked&&volume>0?music(wanted):null;
+    if(active&&active.paused&&!pending.has(active)&&!failed.has(wanted)){
+      pending.add(active);active.play().then(()=>{pending.delete(active);if(!enabled||document.hidden||volume===0||tracks.get(wanted)!==active)active.pause();render();}).catch(error=>{pending.delete(active);if(error.name!=='AbortError'){failed.add(active.dataset.palaceTrack);render();}});
     }
+    fade(active);render();
   }
-  async function sync(){
-    clearTimeout(pauseTimer);
-    if(!enabled||!unlocked||document.hidden||volume===0){
-      clearInterval(timer);timer=null;
-      if(context&&context.state==='running'){
-        master.gain.cancelScheduledValues(context.currentTime);master.gain.setTargetAtTime(0,context.currentTime,.06);
-        pauseTimer=setTimeout(()=>{if(!enabled||document.hidden||volume===0)context.suspend().then(render).catch(()=>{});},250);
-      }
-      render();return;
-    }
-    try{
-      if(!context){const Audio=window.AudioContext||window.webkitAudioContext;context=new Audio();master=context.createGain();master.gain.value=0;master.connect(context.destination);}
-      await context.resume();
-      if(!enabled||document.hidden||volume===0)return sync();
-      master.gain.cancelScheduledValues(context.currentTime);master.gain.setTargetAtTime(volume,context.currentTime,.15);
-      if(!timer){schedule();timer=setInterval(schedule,200);}render();
-    }catch{button.textContent='配樂：無法播放';}
+  function playEffect(name){
+    if(!['clue','entry','success'].includes(name)||$('sound').getAttribute('aria-pressed')!=='true'||document.hidden)return;
+    unlocked=true;
+    if(!effect){effect=new Audio();effect.preload='none';effect.hidden=true;effect.volume=.45;document.body.append(effect);effect.addEventListener('ended',sync);effect.addEventListener('error',sync);}
+    effect.pause();effect.src=files[name];effect.dataset.palaceEffect=name;
+    effect.play().then(sync).catch(()=>sync());
   }
+  button.onclick=e=>{
+    e.stopPropagation();
+    if(!unlocked||enabled&&volume>0&&tracks.get(wanted)?.paused){unlocked=true;enabled=true;failed.delete(wanted);}else enabled=!enabled;
+    save();sync();
+  };
+  slider.oninput=()=>{unlocked=true;volume=Number(slider.value)/100;save();sync();};
   function unlock(){if(!unlocked){unlocked=true;sync();}}
-  button.onclick=e=>{e.stopPropagation();if(!unlocked||enabled&&volume>0&&context?.state!=='running'){unlocked=true;enabled=true;}else enabled=!enabled;save();sync();};
-  slider.oninput=()=>{volume=Number(slider.value)/100;save();sync();};
-  document.addEventListener('click',unlock);
-  document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('#music'))unlock();});
-  document.addEventListener('visibilitychange',sync);
-  render();
+  document.addEventListener('click',unlock);document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('#music'))unlock();});
+  document.addEventListener('palace-sound',e=>playEffect(e.detail));
+  document.addEventListener('visibilitychange',sync);window.addEventListener('pagehide',pauseAll);window.addEventListener('pageshow',sync);
+  const observer=new MutationObserver(()=>{if($('sound').getAttribute('aria-pressed')!=='true'&&effect)effect.pause();sync();});
+  for(const id of ['world','room','workbench','victory','journal','hall-entry','evidence-case'])observer.observe($(id),{attributes:true,attributeFilter:['hidden','open',...(id==='world'?['class']:[])]});
+  observer.observe($('progress'),{childList:true});observer.observe($('sound'),{attributes:true,attributeFilter:['aria-pressed']});
+  sync();
 })();

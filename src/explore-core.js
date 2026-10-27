@@ -19,7 +19,7 @@
     if (!Array.isArray(values) || values.length !== 3 || values.some((v,n) => v === null || String(v).trim() === '' || !Number.isInteger(Number(v)) || Number(v) < (p.mechanic==='pairs'||p.mechanic==='divisibility'&&n===0||p.mechanic==='prime'&&n===1||p.mechanic==='square'&&n===1?0:1) || Number(v) > (['cut','square'].includes(p.mechanic)&&n>0?500:60))) return { correct: false, reason: 'input' };
     l.values = values.map(Number);
     if (l.complete) return { correct: true, already: true };
-    if(p.mechanic==='pairs'&&(!Array.isArray(l.pairs)||l.pairs.length!==5||![0,1,2,3,5].every(n=>l.pairs.includes(n))))return {correct:false,reason:'operation'};
+    if(p.mechanic==='pairs'){const required=p.parameters?p.parameters.pairOptions.flatMap(([a,b],n)=>a*b===p.parameters.target&&a<=b?[n]:[]):[0,1,2,3,5];if(!Array.isArray(l.pairs)||l.pairs.length!==required.length||!required.every(n=>l.pairs.includes(n)))return {correct:false,reason:'operation'};}
     if(p.mechanic==='final'&&(!Array.isArray(l.factors)||l.factors.some(n=>![2,3,5,7].includes(n))||l.factors.reduce((a,b)=>a*b,1)!==Number(values[0])*Number(values[1])||l.factors.length!==Number(values[2])))return {correct:false,reason:'operation'};
     l.attempts++;
     if (!l.values.every((v, n) => v === p.solution[n])) {
@@ -35,12 +35,14 @@
     try {
       const s = JSON.parse(raw);
       if (!s || s.version !== 3 || !Number.isInteger(s.current) || s.current < -1 || s.current > 11 || typeof s.muted !== 'boolean' || !Array.isArray(s.levels) || s.levels.length !== 12) return null;
+      if(s.questionSet!==undefined&&(!Array.isArray(s.questionSet)||s.questionSet.length!==12||s.questionSet.some(n=>!Number.isInteger(n)||n<0||n>3)))return null;
       for (let i = 0; i < 12; i++) {
         const l = s.levels[i];
         if (!l || !Array.isArray(l.clues) || l.clues.length > 3 || !l.clues.every(c => typeof c === 'string') || new Set(l.clues).size !== l.clues.length) return null;
         if (!Array.isArray(l.values) || l.values.length !== 3 || l.values.some((v,n) => !Number.isInteger(v) || v < (i===5||i===0&&n===0||i===2&&n===1||i===8&&n===1?0:1) || v > ([3,8].includes(i)&&n>0?500:60))) return null;
         if(i===9&&l.values[0]>3||i===8&&l.values[0]>10)return null;
-        if(!Array.isArray(l.pairs)||l.pairs.length>7||l.pairs.some(n=>!Number.isInteger(n)||n<0||n>6)||new Set(l.pairs).size!==l.pairs.length)return null;
+        const pairLimit=[7,5,6,7][s.questionSet?.[5]||0];
+        if(!Array.isArray(l.pairs)||l.pairs.length>pairLimit||l.pairs.some(n=>!Number.isInteger(n)||n<0||n>=pairLimit)||new Set(l.pairs).size!==l.pairs.length)return null;
         if(l.factors===undefined)l.factors=[];
         if(!Array.isArray(l.factors)||l.factors.length>20||l.factors.some(v=>![2,3,5,7].includes(v)))return null;
         if (!Number.isInteger(l.attempts) || l.attempts < 0 || !Number.isInteger(l.hints) || l.hints < 0 || l.hints > 3) return null;

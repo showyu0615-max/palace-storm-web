@@ -10,3 +10,40 @@
 .square-board span{display:grid;place-items:center;aspect-ratio:1;min-width:0;font-size:12px;background:#496e5b;color:#e0e7d1;border-radius:3px}
 .square-board .new-tile{background:#d8b25d;color:#3e361c}
 @media(max-width:720px){.deduction-section h3{font-size:16px}.deduction-choices{gap:7px}.deduction-choices button{padding:8px 10px;font-size:14px}.pair-ledger p{font-size:13px}.square-board{width:min(270px,100%)}}
+/* Nine imported props: numbers and selections remain live HTML. */
+.deduction-choices .material-choice{position:relative;display:flex;align-items:center;justify-content:center;isolation:isolate;background:transparent;color:#243f35;padding:12px;border:2px solid transparent;box-shadow:none}
+.material-choice .choice-prop{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:-1;pointer-events:none}
+.material-choice .material-label{position:relative;display:block;max-width:68%;font-weight:700;text-shadow:0 1px #fff4d7}
+.deduction-choices .material-choice.selected{color:#183c2e;background:#d5bd7840;border-color:#8b6825;box-shadow:0 0 0 2px #d7bc79}
+.deduction-choices .material-choice:focus-visible{outline:3px solid #285c92;outline-offset:3px}
+.claim-cards .material-choice{flex:1 1 140px;max-width:190px;min-height:245px}
+.claim-cards .material-label{font-size:16px;line-height:1.8;text-align:left;max-width:60%}
+.counter-cards .material-choice{width:105px;height:105px}
+.counter-cards .material-label{font-size:29px}
+.seal-cards .material-choice{flex:1 1 150px;max-width:230px;min-height:180px;align-items:flex-end;padding-top:110px;background:#f5ecd5}
+.seal-cards .choice-prop{height:110px}
+.seal-cards .material-label{max-width:100%;font-size:15px;line-height:1.7;text-align:left}
+.guard-cards .material-choice{width:132px;height:195px}
+.guard-cards .material-label{font-size:29px}
+.gate-cards .material-choice{width:95px;height:145px}
+.gate-cards .material-label{font-size:27px}
+.deduction-choices .coin-pair{display:flex;flex-direction:column;gap:5px;min-width:110px;font-size:14px}
+.coin-values{display:flex;gap:9px;pointer-events:none}
+.coin-number{position:relative;display:grid;place-items:center;width:42px;height:42px}
+.coin-number img{position:absolute;inset:0;width:100%;height:100%}
+.coin-number b{position:relative;color:#fff9dc;font-size:18px;text-shadow:0 1px 3px #18231d,1px 0 2px #18231d,-1px 0 2px #18231d}
+.material-ledger{position:relative;display:block;width:min(580px,100%);aspect-ratio:1.5;margin:20px auto;color:#2e4439}
+.ledger-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+.ledger-pages{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:13%;padding:12% 10%;font-size:clamp(12px,2.2vw,18px)}
+.ledger-page{min-width:0;display:flex;flex-direction:column;gap:8px}
+.material-ledger p{padding:3px 0;margin:0;background:transparent;border:0;border-radius:0;white-space:nowrap;font-size:inherit}
+.material-ledger .invalid-pair{color:#9a312b;background:#f7dfce;border-bottom:2px dashed #a44131}
+.ledger-empty{font-size:14px;line-height:1.6}
+.grain-tray{position:relative;width:min(420px,100%);aspect-ratio:1;box-sizing:border-box;padding:0;margin:20px auto}
+.tray-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.grain-tray .square-board{position:absolute;inset:14%;width:72%;height:72%;margin:0;gap:2px}
+.grain-tray .square-board span{position:relative;background:transparent;border:1px solid transparent;border-radius:2px}
+.grain-tray .square-board img{display:block;width:100%;height:100%;object-fit:contain}
+.grain-tray .square-board .new-tile{border-color:#f6d776;background:#f5cf7150;box-shadow:0 0 0 1px #9d6b2a}
+.grain-tray .new-tile b{position:absolute;right:-1px;bottom:-1px;border-radius:50%;font-size:clamp(9px,1.4vw,13px);line-height:1;background:#f4d17b;color:#44300c}
+@media(max-width:720px){.claim-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.claim-cards .material-choice{min-width:0;width:100%;min-height:205px;max-width:none}.claim-cards .material-label{font-size:14px;line-height:1.7}.guard-cards .material-choice{width:calc((100% - 14px)/3);min-width:65px;height:155px}.guard-cards .material-label{font-size:20px}.gate-cards .material-choice{width:calc((100% - 14px)/3);min-width:60px;height:125px}.gate-cards .material-label{font-size:24px}.counter-cards .material-choice{width:80px;height:80px}.ledger-pages{padding:12% 8%;gap:14%;font-size:12px}.ledger-page{gap:5px}.ledger-empty{font-size:12px}.material-ledger p{padding:2px 0}.grain-tray{margin:15px auto}.seal-cards .material-choice{flex-basis:100%;max-width:none;min-height:150px;padding:12px 12px 12px 100px;align-items:center}.seal-cards .choice-prop{width:95px;height:100%;right:auto}.seal-cards .material-label{font-size:14px}}

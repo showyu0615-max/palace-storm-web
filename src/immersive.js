@@ -1,17 +1,20 @@
 (function () {
   'use strict';
   const core = window.ExploreCore;
-  const puzzles = window.PalacePuzzles;
+  const sourcePuzzles = window.PalacePuzzles;
+  let puzzles,restoredSave=false;
   const $ = id => document.getElementById(id);
   const KEY = 'palace-exploration-v3';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let state = core.fresh(), warning = '', selected = 0, pendingClue = null, transitionBusy = false, audio;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const restored = core.restore(raw); if (restored) state = restored; else warning = '存檔無法讀取，已建立新調查。'; }
+    if (raw) { const restored = core.restore(raw); if (restored) {state = restored;restoredSave=true;} else warning = '存檔無法讀取，已建立新調查。'; }
   } catch { warning = '瀏覽器禁止儲存，當次可玩，關閉後無法延續。'; }
-  if (!Array.isArray(puzzles) || puzzles.length !== 12) { $('save-message').textContent = '題庫載入失敗，請保留src資料夾與入口檔相對位置。'; return; }
-  const config = [
+  if(!restoredSave)state.questionSet=window.QuestionVariants.newSet();
+  if (!Array.isArray(sourcePuzzles) || sourcePuzzles.length !== 12) { $('save-message').textContent = '題庫載入失敗，請保留src資料夾與入口檔相對位置。'; return; }
+  puzzles=window.QuestionVariants.build(sourcePuzzles,state.questionSet);
+  let config = [
     {labels:['末位數字','三位數的數字和','可證成的整除數'],max:[9,20,10],initial:[1,8,4],note:'補上43□的末位，核對偶數與數字和，再選出能由2與3的整除性證成的令牌。'},
     {labels:['密牌號','除以5的商','除以3的商'],max:[30,10,10],initial:[12,2,4],note:'點選密牌觀察兩道餘數；商會隨牌號更新。找出同時符合兩份記錄的牌號。'},
     {labels:['真藥方編號','定位貨架號','原有藥包數'],max:[60,4,60],initial:[31,1,48],note:'點藥罐選出符合全部條件的編號，再定位貨架並還原藥包數。'},
@@ -26,8 +29,23 @@
     {labels:['36的最小質因數','與它配對的正因數','重複計數的質因數個數'],max:[7,36,20],initial:[3,12,1],note:'先回驗兩因數乘積為36，再逐次拆出質數直到剩1；重複出現也要計數。'}
   ];
   const diverse=[0,1,5,7,8,9,10];
-  const pairOptions=[[1,36],[2,18],[3,12],[4,9],[5,7],[6,6],[9,4]];
-  function minimum(i,n){return i===1&&n===0?10:i===10&&n===0?25:i===5||i===0&&n===0||i===2&&n===1||i===8&&n===1?0:1;}
+  let pairOptions=[[1,36],[2,18],[3,12],[4,9],[5,7],[6,6],[9,4]];
+  function minimum(i,n){return i===1&&n===0?puzzles[1].parameters.min:i===10&&n===0?puzzles[10].parameters.min:i===5||i===0&&n===0||i===2&&n===1||i===8&&n===1?0:1;}
+  const baselineConfig=JSON.parse(JSON.stringify(config));
+  function applyQuestionSet(){
+    puzzles=window.QuestionVariants.build(sourcePuzzles,state.questionSet);config=JSON.parse(JSON.stringify(baselineConfig));pairOptions=puzzles[5].parameters.pairOptions;
+    puzzles.forEach((p,i)=>{if(p.variant)config[i].note=p.intro.join(' ');});
+    config[0].initial=[1,String(puzzles[0].parameters.prefix).split('').reduce((a,b)=>a+Number(b),0)+1,4];
+    for(const i of [1,10]){const t=puzzles[i].parameters;config[i].max=[t.max,20,20];config[i].initial=[t.min,1,1];}
+    const medicine=puzzles[2].parameters;config[2].initial=[medicine.candidates[0],1,48];
+    config[3].totals=puzzles[3].parameters.totals;
+    config[4].note=`按質數籌碼調整底數，再調整指數，將完整乘積還原為${puzzles[4].parameters.target}。`;
+    config[5].note=`選齊乘積${puzzles[5].parameters.target}且較小的數在前的配對；翻轉不重算，平方根只列一次。`;
+    config[7].max[1]=60;config[7].initial[1]=puzzles[7].parameters.counters[0];
+    config[11].labels[0]=puzzles[11].parameters.target+'的最小質因數';config[11].max[1]=60;
+    config[11].note=`回驗兩因數乘積為${puzzles[11].parameters.target}，再逐次拆出質數直到剩1；重複出現也要計數。`;
+  }
+  applyQuestionSet();
   const coords = [[240,170],[250,365],[165,500],[960,530],[475,510],[1190,690],[1160,315],[1200,480],[1250,135],[230,700],[700,790],[700,145]];
   let view = { zoom: innerWidth < 720 ? .64 : .83, x:0, y:0 };
   const palaceSVG = '<svg viewBox="0 0 160 100" aria-hidden="true"><path class="roof" d="M20 25Q30 21 38 7H122Q130 21 140 25L154 31H6Z"/><path class="roof-detail" d="M34 18H126M22 26H138"/><path class="wall" d="M20 33H140V83H20Z"/><path class="wood" d="M28 35H35V80H28ZM74 35H86V80H74ZM125 35H132V80H125Z"/><path class="plaque" d="M55 38H105V53H55Z"/><path fill="#6e7a62" d="M12 84H148V91H12ZM3 92H157V98H3Z"/><path fill="#87957a" d="M41 58H62V76H41ZM99 58H120V76H99Z"/></svg>';
@@ -63,7 +81,7 @@
   }
   function save() {
     try { localStorage.setItem(KEY,JSON.stringify(state)); if (!warning.includes('禁止')) warning = ''; }
-    catch { warning = '無法儲存；可繼續當次遊玩，關閉後可能無法延續。'; }
+    catch { if(!warning.includes('禁止'))warning = '無法儲存；可繼續當次遊玩，關閉後可能無法延續。'; }
     $('save-message').textContent = warning || '探索進度已本機保存 · 不傳送個人資料';
     renderHud();
   }
@@ -73,7 +91,7 @@
     $('sound').setAttribute('aria-pressed',String(!state.muted));
   }
   function tone(ok) {
-    if (state.muted) return;
+    if (state.muted || ok) return;
     try {
       audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume();
       const osc = audio.createOscillator(), gain = audio.createGain(); osc.connect(gain); gain.connect(audio.destination);
@@ -143,6 +161,7 @@
   }
   async function beginJourney(i){
     if(transitionBusy||!core.unlocked(state,i))return;
+    document.dispatchEvent(new CustomEvent('palace-sound',{detail:'entry'}));
     transitionBusy=true;const from=state.place,previousView={...view};journey={skipped:reduced.matches,finish:null};
     $('home').inert=$('journal-open').inert=$('settings').inert=true;
     try{
@@ -195,6 +214,7 @@
   function clueOpen(index, collectedOnly=false) {
     const i=state.current,p=puzzles[i],clue=p.clues[index];
     pendingClue=collectedOnly?null:{i,id:clue.id};
+    if(!collectedOnly&&!state.levels[i].clues.includes(clue.id))document.dispatchEvent(new CustomEvent('palace-sound',{detail:'clue'}));
     $('clue-title').textContent=clue.title;$('clue-text').textContent=clue.text;$('clue-art').textContent=clue.title;
     $('clue-art').classList.toggle('with-asset',i<materialActors.length);
     if(i<materialActors.length){$('clue-art').replaceChildren(asset(materialProps[i][index],'clue-prop',clue.title));}
@@ -276,7 +296,7 @@
   };
   function talk(){const i=state.current,l=state.levels[i],p=puzzles[i];
     const lines=l.complete?[`「${p.explanation}」`,'「這份證據與前一處的疑點相呼應。沿宮城路線繼續查下去。」']:
-      l.clues.length===3?['「三條線索都找到了。先別急著猜鎖碼，把它們的條件交叉比對。」',p.intro[2],`「${p.hints[0]}」`]:[...characterLines[i],p.intro[2]];
+      l.clues.length===3?['「三條線索都找到了。先別急著猜鎖碼，把它們的條件交叉比對。」',p.intro[2],`「${p.hints[0]}」`]:[...characterLines[i].map(line=>i===5?line.replace('36',String(p.parameters.target)):i===8?line.replace('40',String(p.parameters.original)):i===9?line.replace('234、245、252',p.parameters.codes.join('、')):line),p.intro[2]];
     dialogue(lines,()=>{l.talkSeen=true;save();},true);
   }
   $('npc-talk').onclick=talk;
@@ -327,12 +347,12 @@
       const totals=config[i].totals;
       v[1]=Math.floor(totals[0]/v[0]);v[2]=Math.floor(totals[1]/v[0]);
     }
-    if(i===0)v[1]=7+v[0];
-    if(i===1){v[1]=Math.floor(v[0]/5);v[2]=Math.floor(v[0]/3);}
+    if(i===0)v[1]=String(puzzles[0].parameters.prefix).split('').reduce((a,b)=>a+Number(b),0)+v[0];
+    if(i===1){v[1]=Math.floor(v[0]/puzzles[i].parameters.a);v[2]=Math.floor(v[0]/puzzles[i].parameters.b);}
     if(i===5){const picked=state.levels[i].pairs;const numbers=[...new Set(picked.flatMap(n=>pairOptions[n]))].sort((a,b)=>a-b);v[0]=picked.length;v[1]=numbers.length;v[2]=numbers.length%2?numbers[Math.floor(numbers.length/2)]:0;}
-    if(i===8){v[1]=Math.max(0,v[0]*v[0]-40);v[2]=v[0]*v[0];}
-    if(i===9){const number=[234,245,252][v[0]-1];v[1]=number%100;v[2]=String(number).split('').reduce((a,b)=>a+Number(b),0);}
-    if(i===10){v[1]=Math.floor(v[0]/4);v[2]=Math.floor(v[0]/6);}
+    if(i===8){v[1]=Math.max(0,v[0]*v[0]-puzzles[i].parameters.original);v[2]=v[0]*v[0];}
+    if(i===9){const number=puzzles[i].parameters.codes[v[0]-1];v[1]=number%100;v[2]=String(number).split('').reduce((a,b)=>a+Number(b),0);}
+    if(i===10){v[1]=Math.floor(v[0]/puzzles[i].parameters.a);v[2]=Math.floor(v[0]/puzzles[i].parameters.b);}
     for(let n=0;n<3;n++){const input=$('value-'+n);if(input)input.value=v[n];const range=$('range-'+n);if(range)range.value=v[n];}
   }
   function setValue(n,value){const i=state.current,min=minimum(i,n);state.levels[i].values[n]=Math.max(min,Math.min(config[i].max[n],Number(value)||min));
@@ -370,47 +390,63 @@
   function choices(box,title,options,selected,action){
     const section=make('section','deduction-section');section.append(make('h3','',title));const grid=make('div','deduction-choices');
     for(const [value,label]of options){const b=make('button',Array.isArray(selected)?(selected.includes(value)?'selected':''):(selected===value?'selected':''),label);b.setAttribute('aria-pressed',String(Array.isArray(selected)?selected.includes(value):selected===value));b.onclick=()=>action(value);grid.append(b);}
-    section.append(grid);box.append(section);
+    section.append(grid);box.append(section);return grid;
+  }
+  function materialChoices(grid,file,className,labels){
+    grid.classList.add(className);
+    [...grid.children].forEach((button,n)=>{const label=button.textContent;button.setAttribute('aria-label',label);button.classList.add('material-choice');button.replaceChildren(asset('props/'+file,'choice-prop',''),make('span','material-label',labels?labels[n]:label));});
   }
   function diverseVisual(i,box,v){
+    const t=puzzles[i].parameters;
     if(i===0){
-      choices(box,'補上帳冊末位：43□',Array.from({length:10},(_,n)=>[n,'填入末位'+n]),v[0],n=>setValue(0,n));
-      const number=430+v[0];equation(`帳冊 ${number} ｜ 數字和 4＋3＋${v[0]}＝${v[1]}`);
+      choices(box,`補上帳冊末位：${t.prefix}□`,Array.from({length:10},(_,n)=>[n,'填入末位'+n]),v[0],n=>setValue(0,n));
+      const number=t.prefix*10+v[0];equation(`帳冊 ${number} ｜ 數字和 ${String(t.prefix).split('').join('＋')}＋${v[0]}＝${v[1]}`);
       note(`2的查驗：${number%2===0?'個位為偶數，可整除':'個位為奇數，不可整除'}；9的查驗：數字和${v[1]}${v[1]%9===0?'可':'不可'}被9整除。`);
       choices(box,'選出能由「同時被2與3整除」證成的整除令',[4,5,6,10].map(n=>[n,'整除令'+n]),v[2],n=>setValue(2,n));
     }else if(i===1||i===10){
-      const garden=i===1,start=garden?10:25,end=garden?30:39,a=garden?5:4,b=garden?3:6;
-      choices(box,garden?'逐一查驗花燈密牌':'逐一查驗暗號門牌',Array.from({length:end-start+1},(_,n)=>[n+start,(garden?'試驗密牌':'查驗門牌')+(n+start)]),v[0],n=>setValue(0,n));
+      const garden=i===1,start=t.min,end=t.max,a=t.a,b=t.b;
+      const plates=choices(box,garden?'逐一查驗花燈密牌':'逐一查驗暗號門牌',Array.from({length:end-start+1},(_,n)=>[n+start,(garden?'試驗密牌':'查驗門牌')+(n+start)]),v[0],n=>setValue(0,n));
+      if(!garden)materialChoices(plates,'gate_number_plate.png','gate-cards',Array.from({length:end-start+1},(_,n)=>String(n+start)));
       equation(`${v[0]} ＝ ${a} × ${v[1]} ＋ ${v[0]%a}`);equation(`${v[0]} ＝ ${b} × ${v[2]} ＋ ${v[0]%b}`);
-      note(garden?'東側要求除5餘2；西側要求除3餘1。兩份都符合才是密牌。':'門牌須大於24、小於40；甲班要求除4餘1，乙班要求除6餘3。商與餘數不要互換。');
+      note(`範圍${t.min}至${t.max}；${garden?'東側':'甲班'}要求除${a}餘${t.ra}，${garden?'西側':'乙班'}要求除${b}餘${t.rb}。商與餘數不要互換。`);
     }else if(i===5){
       const picked=state.levels[i].pairs;
-      choices(box,'把所有合法配對收入帳簿（再按可移除）',pairOptions.map((p,n)=>[n,`配對 ${p[0]} × ${p[1]}`]),picked,n=>{
+      const pairs=choices(box,'把所有合法配對收入帳簿（再按可移除）',pairOptions.map((p,n)=>[n,`配對 ${p[0]} × ${p[1]}`]),picked,n=>{
         const at=picked.indexOf(n);if(at<0)picked.push(n);else picked.splice(at,1);deriveMechanism(i);save();visual();
       });
-      const ledger=make('div','pair-ledger');for(const n of picked){const [a,b]=pairOptions[n];ledger.append(make('p',a*b!==36||a>b?'invalid-pair':'',`${a} × ${b} ＝ ${a*b}${a*b!==36?'：不是36':a>b?'：較小的數未在前，與翻轉配對重複':'：已收入配對'}`));}box.append(ledger);
+      [...pairs.children].forEach((button,n)=>{button.setAttribute('aria-label',button.textContent);button.classList.add('coin-pair');const coins=make('span','coin-values');coins.setAttribute('aria-hidden','true');for(const value of pairOptions[n]){const coin=make('span','coin-number');coin.append(asset('props/silver_token.png','',''),make('b','',String(value)));coins.append(coin);}button.prepend(coins);});
+      const ledger=make('div','pair-ledger material-ledger'),pages=make('div','ledger-pages'),left=make('div','ledger-page'),right=make('div','ledger-page');
+      ledger.append(asset('props/factor_pair_ledger.png','ledger-art','因數配對帳簿'));pages.append(left,right);ledger.append(pages);
+      picked.forEach((n,index)=>{const [a,b]=pairOptions[n],invalid=a*b!==t.target||a>b;const row=make('p',invalid?'invalid-pair':'',`${a} × ${b} ＝ ${a*b}`);row.setAttribute('aria-label',row.textContent+(a*b!==t.target?'：不是'+t.target:a>b?'：與翻轉配對重複':'：已收入配對'));row.title=row.getAttribute('aria-label');(index%2?right:left).append(row);});
+      if(!picked.length)left.append(make('span','ledger-empty','尚未收入配對'));box.append(ledger);
       const numbers=[...new Set(picked.flatMap(n=>pairOptions[n]))].sort((a,b)=>a-b);
-      equation(`已選 ${v[0]} 對 ｜ 不同數字 ${v[1]} 個`);note('帳簿中的不同數字：'+(numbers.join('、')||'尚未配對')+'。請先排除非法配對，再核對是否收齊；相同的6只能算一次。');
+      equation(`已選 ${v[0]} 對 ｜ 不同數字 ${v[1]} 個`);note('帳簿中的不同數字：'+(numbers.join('、')||'尚未配對')+'。請先排除非法配對，再核對是否收齊；中央因數只能算一次。');
     }else if(i===7){
-      choices(box,'第一步：指出錯誤說法',[[1,'說法1：每個奇數都是質數'],[2,'說法2：2是唯一偶質數'],[3,'說法3：1非質數也非合數']],v[0],n=>setValue(0,n));
-      choices(box,'第二步：選能推翻錯說的反例',[7,9,11].map(n=>[n,'反例信物'+n]),v[1],n=>setValue(1,n));
+      const claims=choices(box,'第一步：指出錯誤說法',[[1,'說法1：每個奇數都是質數'],[2,'說法2：2是唯一偶質數'],[3,'說法3：1非質數也非合數']],v[0],n=>setValue(0,n));
+      materialChoices(claims,'claim_scroll.png','claim-cards');
+      const counters=choices(box,'第二步：選能推翻錯說的反例',t.counters.map(n=>[n,'反例信物'+n]),v[1],n=>setValue(1,n));
+      materialChoices(counters,'counterexample_token.png','counter-cards',t.counters.map(String));
       const factors=[];for(let n=1;n<=v[1];n++)if(v[1]%n===0)factors.push(n);equation(`信物 ${v[1]} 的正因數：${factors.join('、')}`);
-      choices(box,'第三步：換上正確修正句',[[1,'修正1：每個奇數都是質數'],[2,'修正2：奇數也可能是合數'],[3,'修正3：只有偶數才可能是合數']],v[2],n=>setValue(2,n));
+      const seals=choices(box,'第三步：換上正確修正句',[[1,'修正1：每個奇數都是質數'],[2,'修正2：奇數也可能是合數'],[3,'修正3：只有偶數才可能是合數']],v[2],n=>setValue(2,n));
+      materialChoices(seals,'reasoning_seal.png','seal-cards');
       note('反例要同時符合原句的前提，卻不符合結論；支持例子不能推翻「每個」的說法。');
     }else if(i===8){
       choices(box,'調整方陣每邊格數',[5,6,7,8].map(n=>[n,'排成 '+n+' × '+n]),v[0],n=>setValue(0,n));
       const grid=make('div','square-board');grid.style.gridTemplateColumns=`repeat(${v[0]},1fr)`;
-      for(let n=0;n<v[2];n++){const tile=make('span',n>=40?'new-tile':'');tile.textContent=n>=40?'＋':'■';grid.append(tile);}box.append(grid);
-      equation(`${v[0]} × ${v[0]} ＝ ${v[2]} 格`);note(v[2]<40?`還有 ${40-v[2]} 份原有糧磚放不下，不能拿走；請擴大方陣。`:`原有40份 ＋ 補入${v[1]}份 ＝ ${v[2]}份；金色格為新增。能排下還不夠，新增量要最少。`);
+      grid.setAttribute('aria-label',`${v[0]}乘${v[0]}方陣，共${v[2]}份，新增${Math.max(0,v[2]-t.original)}份`);
+      for(let n=0;n<v[2];n++){const tile=make('span',n>=t.original?'new-tile':'');tile.append(asset('props/grain_tile.png','',''));if(n>=t.original)tile.append(make('b','','＋'));grid.append(tile);}
+      const tray=make('div','grain-tray');tray.append(asset('props/grain_square_tray.png','tray-art','木製方陣托盤'),grid);box.append(tray);
+      equation(`${v[0]} × ${v[0]} ＝ ${v[2]} 格`);note(v[2]<t.original?`還有 ${t.original-v[2]} 份原有糧磚放不下，不能拿走；請擴大方陣。`:`原有${t.original}份 ＋ 補入${v[1]}份 ＝ ${v[2]}份；金色格為新增。能排下還不夠，新增量要最少。`);
     }else if(i===9){
-      choices(box,'選一枚兵符，查驗兩個條件',[[1,'兵符1：234'],[2,'兵符2：245'],[3,'兵符3：252']],v[0],n=>setValue(0,n));
+      const guards=choices(box,'選一枚兵符，查驗兩個條件',t.codes.map((n,index)=>[index+1,`兵符${index+1}：${n}`]),v[0],n=>setValue(0,n));
+      materialChoices(guards,'guard_code_token.png','guard-cards',t.codes.map(String));
       equation(`末兩位 ${v[1]} ÷ 4 ＝ ${Math.floor(v[1]/4)} … 餘 ${v[1]%4}`);
       equation(`數字和 ${v[2]} ÷ 9 ＝ ${Math.floor(v[2]/9)} … 餘 ${v[2]%9}`);
-      note('真兵符必須兩道檢查都整除。234雖是偶數且數字和9，仍不能只憑這兩點判定被4整除。');
+      note('真兵符必須兩道檢查都整除；不能只看偶數或數字和其中一項。');
     }
   }
   function visual(){
-    const i=state.current,c=config[i],v=values(),box=$('puzzle-visual');box.replaceChildren();
+    const i=state.current,c=config[i],v=values(),t=puzzles[i].parameters,box=$('puzzle-visual');box.replaceChildren();
     if(diverse.includes(i)){diverseVisual(i,box,v);return;}
     if(i===6){
       const max=60;
@@ -418,12 +454,12 @@
         for(let t=c.offset[n];t<=max;t+=v[n]){const marker=make('span');marker.style.left=(t/max*100)+'%';track.append(marker);}
         const cursor=make('span','cursor');cursor.style.left=v[2]/max*100+'%';track.append(cursor);track.setAttribute('aria-label',`${n?'乙':'甲'}隊時間軸，從${c.offset[n]}起，每隔${v[n]}分鐘`);box.append(track);
       }
-      const nav=make('div','timeline-nav');for(const t of [12,16,20,24,28,36,48,60]){const b=make('button',t===v[2]?'selected':'',String(t)+' 分');b.onclick=()=>setValue(2,t);nav.append(b);}box.append(nav);
+      const nav=make('div','timeline-nav');for(const t of [12,16,20,24,28,36,40,48,60]){const b=make('button',t===v[2]?'selected':'',String(t)+' 分');b.onclick=()=>setValue(2,t);nav.append(b);}box.append(nav);
       const meet=v[2]>=c.offset[0]&&v[2]>=c.offset[1]&&(v[2]-c.offset[0])%v[0]===0&&(v[2]-c.offset[1])%v[1]===0;
       equation(`第 ${v[2]} 分鐘 · ${meet?'兩排標記重合':'兩排標記尚未重合'}`);
       note(`從11時起算，目前11時${String(v[2]).padStart(2,'0')}分；要在11時20分或之後。`);
     }else if(i===2){
-      const rack=make('div','jar-grid');for(const n of [31,33,35,37,39,41]){const b=make('button','jar'+(n===v[0]?' selected':''),String(n));b.append(make('small','','藥方編號'));b.onclick=()=>setValue(0,n);rack.append(b);}box.append(rack);
+      const rack=make('div','jar-grid');for(const n of t.candidates){const b=make('button','jar'+(n===v[0]?' selected':''),String(n));b.append(make('small','','藥方編號'));b.onclick=()=>setValue(0,n);rack.append(b);}box.append(rack);
       const trial=make('section','prime-trial');trial.append(make('h3','','藥方查驗臺'));
       trial.append(make('p','',`先選一張藥方，再試除。目前編號 ${v[0]}；數字和為 ${Math.floor(v[0]/10)+v[0]%10}。`));
       const tools=make('div','prime-tools');for(const d of[2,3,5]){const b=make('button','',`用 ${d} 試除`);b.setAttribute('aria-label',`以${d}試除`);b.onclick=()=>{primeTrials[v[0]]||=[];if(!primeTrials[v[0]].includes(d))primeTrials[v[0]].push(d);visual();};tools.append(b);}trial.append(tools);
@@ -431,19 +467,19 @@
       for(const d of checked)results.append(make('p','',`${v[0]} ÷ ${d} ＝ ${Math.floor(v[0]/d)} … 餘 ${v[0]%d}${v[0]%d===0?'，找到1與本身以外的因數。':''}`));
       const composite=checked.some(d=>v[0]%d===0),allChecked=[2,3,5].every(d=>checked.includes(d));
       const verdict=make('p','prime-verdict',composite?'已找到其他因數，這是合數，不能當作真藥方。':allChecked?'2、3、5都無法整除；在這批候選範圍內，已確認是質數，還要核對範圍與數字和。':'尚未完成質數查驗。請把試除結果當作證據，不要只看奇偶。');verdict.id='prime-verdict';trial.append(results,verdict);
-      trial.append(make('p','tiny','候選數最大41，小於7×7；檢查2、3、5即可涵蓋可能的小質因數。試算紀錄只作觀察，刷新後可重新試除。'));box.append(trial);
-      equation(`${v[0]} ÷ 5 ＝ ${Math.floor(v[0]/5)} … 餘 ${v[0]%5}`);note(`數字和 ${Math.floor(v[0]/10)+v[0]%10}；原有藥包推算：2 × ${v[0]} − 14 ＝ ${v[0]*2-14}。請自行判斷候選是否為質數。`);
+      trial.append(make('p','tiny','候選數皆小於7×7；檢查2、3、5即可涵蓋可能的小質因數。試算紀錄只作觀察，刷新後可重新試除。'));box.append(trial);
+      equation(`${v[0]} ÷ 5 ＝ ${Math.floor(v[0]/5)} … 餘 ${v[0]%5}`);note(`數字和 ${Math.floor(v[0]/10)+v[0]%10}；原有藥包推算：2 × ${v[0]} − ${t.drugOffset} ＝ ${v[0]*2-t.drugOffset}。請自行判斷候選是否為質數。`);
       const shelves=make('div','clinic-drawers');for(let shelf=0;shelf<=4;shelf++){const b=make('button','clinic-drawer'+(v[1]===shelf?' selected':''),shelf+'號');b.append(make('span','drawer-handle','○'));b.setAttribute('aria-label',`選擇${shelf}號貨架`);b.onclick=()=>setValue(1,shelf);shelves.append(b);}box.append(shelves);
     }else if(i===3){
       c.totals.forEach((length,n)=>{const sheet=make('div','cloth-sheet'),cloth=make('div','cloth'+(n===0?' blue':''));cloth.style.width=length/Math.max(...c.totals)*100+'%';cloth.append(make('b','',`${n?'紅':'青'}緞 ${length} cm`));for(let cut=v[0];cut<length;cut+=v[0]){const mark=make('i');mark.style.left=cut/length*100+'%';cloth.append(mark);}const scissors=asset('props/tailor_scissors.png','cutting-tool','裁切工具位置');scissors.style.left=v[0]/Math.max(...c.totals)*100+'%';sheet.append(cloth,scissors);box.append(sheet);});
-      equation(`84 ÷ ${v[0]}：${Math.floor(84/v[0])} 段、餘 ${84%v[0]} ｜ 126 ÷ ${v[0]}：${Math.floor(126/v[0])} 段、餘 ${126%v[0]}`);note('切口會隨裁布尺移動。兩匹都無剩料仍不一定是最長段長，請回看裁切規則。');
+      equation(`${t.totals[0]} ÷ ${v[0]}：${Math.floor(t.totals[0]/v[0])} 段、餘 ${t.totals[0]%v[0]} ｜ ${t.totals[1]} ÷ ${v[0]}：${Math.floor(t.totals[1]/v[0])} 段、餘 ${t.totals[1]%v[0]}`);note('切口會隨裁布尺移動。兩匹都無剩料仍不一定是最長段長，請回看裁切規則。');
     }else if(i===4){
-      const tree=make('div','factor-tree');tree.append(make('span','factor-token','72'),make('span','','＝'),make('span','factor-token',`${v[0]}^${v[1]}`),make('span','','×'),make('span','factor-token',`3^${v[2]}`));box.append(tree);
+      const tree=make('div','factor-tree');tree.append(make('span','factor-token',String(t.target)),make('span','','＝'),make('span','factor-token',`${v[0]}^${v[1]}`),make('span','','×'),make('span','factor-token',`3^${v[2]}`));box.append(tree);
       const shelf=make('div','factor-shelf');for(const prime of [2,3,5,7]){const b=make('button','',String(prime));b.setAttribute('aria-label',`選擇質底數${prime}`);b.onclick=()=>setValue(0,prime);shelf.append(b);}box.append(shelf);
       equation(`${v[0]}^${v[1]} × 3^${v[2]} ＝ ${Math.pow(v[0],v[1])*Math.pow(3,v[2])}`);note('鎖盤分別控制質底數、左側指數、右側指數。乘積相同之外，也要符合書脊指定的底數條件。');
     }else{
       const chain=make('div','evidence-lock');['最小質因數','對應因數','分解回驗'].forEach((label,n)=>{const cell=make('span','',String(v[n]));cell.append(make('small','',label));chain.append(cell);});box.append(chain);
-      equation(`密詔原數 N ＝ ${v[0]} × ${v[1]} ＝ ${v[0]*v[1]}`);note('前兩格的乘積必須回到36；第三格再完整質因數分解，將重複出現的質數分別計數。三項證據缺一不可。');
+      equation(`密詔原數 N ＝ ${v[0]} × ${v[1]} ＝ ${v[0]*v[1]}`);note(`前兩格的乘積必須回到${t.target}；第三格再完整質因數分解，將重複出現的質數分別計數。三項證據缺一不可。`);
       const product=finalFactors.reduce((a,b)=>a*b,1),remaining=v[0]*v[1]/product;
       equation(`尚待分解 ${remaining}　｜　已拆出 ${finalFactors.length} 個質因數`);
       const shelf=make('div','factor-shelf');for(const prime of [2,3,5,7]){const b=make('button','',`拆出 ${prime}`);b.setAttribute('aria-label','拆出質因數'+prime);b.disabled=remaining===1||remaining%prime!==0;b.onclick=()=>{finalFactors.push(prime);state.levels[i].factors=finalFactors;v[2]=finalFactors.length;$('value-2').value=v[2];save();visual();};shelf.append(b);}const reset=make('button','','重排分解');reset.onclick=()=>{finalFactors=[];state.levels[i].factors=finalFactors;v[2]=1;$('value-2').value=1;save();visual();};shelf.append(reset);box.append(shelf);
@@ -459,6 +495,7 @@
     if(!result.correct){$('puzzle-feedback').textContent=result.reason==='operation'?'請找齊所有合法配對，排除錯誤乘積與翻轉重複，再提出證據。':result.reason==='input'?'請填入控制盤允許範圍內的整數。':'機關沒有開啟：目前組合尚未同時滿足三份線索。對照圖像、餘數與條件，再調整一次。';renderHint();return;}
     $('puzzle-feedback').textContent='三份線索相互吻合，機關已開啟。';renderClues();
     if(result.already)return;
+    document.dispatchEvent(new CustomEvent('palace-sound',{detail:'success'}));
     $('victory-cg').hidden=i>=materialCG.length;
     if(i<materialCG.length){$('victory-cg').src='assets/cg/'+materialCG[i];$('victory-cg').alt=p.location+'查證事件';}
     $('victory').classList.toggle('with-cg',i<materialCG.length);
@@ -498,11 +535,11 @@
   };
   $('journal-close').onclick=()=>$('journal').close();$('sound').onclick=()=>{state.muted=!state.muted;save();tone(true);};
   $('settings').onclick=()=>$('reset-dialog').showModal();$('reset-cancel').onclick=()=>$('reset-dialog').close();
-  $('reset-confirm').onclick=()=>{state=core.fresh();$('reset-dialog').close();save();showMap();};
+  $('reset-confirm').onclick=()=>{const previous=state.questionSet;state=core.fresh();state.questionSet=window.QuestionVariants.newSet(previous);applyQuestionSet();$('reset-dialog').close();save();showMap();};
   // Restore the location without replaying the film; all clues remain in the hand-written journal.
   if(state.current>=0){room(state.current);}else showMap(false);
   heroAt(state.place<0?[700,490]:approaches[state.place].at(-1));
   selectPlace(Math.min(core.evidence(state),11));panMap();
-  renderHud();
+  renderHud();if(!restoredSave)save();
   $('save-message').textContent=warning||'素材已整合：宮城總圖與十二局專屬場景、人物、道具及過場';
 })();
