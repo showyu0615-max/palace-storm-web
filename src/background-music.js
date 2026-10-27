@@ -54,7 +54,7 @@
     }catch{button.textContent='配樂：無法播放';}
   }
   function unlock(){if(!unlocked){unlocked=true;sync();}}
-  button.onclick=e=>{e.stopPropagation();if(!unlocked){unlocked=true;enabled=true;}else enabled=!enabled;save();sync();};
+  button.onclick=e=>{e.stopPropagation();if(!unlocked||enabled&&volume>0&&context?.state!=='running'){unlocked=true;enabled=true;}else enabled=!enabled;save();sync();};
   slider.oninput=()=>{volume=Number(slider.value)/100;save();sync();};
   document.addEventListener('click',unlock);
   document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('#music'))unlock();});
