@@ -56,9 +56,9 @@
   async function changeScene(action) {
     if (transitionBusy) return;
     transitionBusy = true; $('veil').classList.add('busy');
-    await animate($('veil'), [{opacity:0},{opacity:1}], {duration:300,fill:'forwards'});
+    await animate($('veil'), [{opacity:0},{opacity:1}], {duration:450,fill:'forwards'});
     action();
-    await animate($('veil'), [{opacity:1},{opacity:0}], {duration:650,fill:'forwards'});
+    await animate($('veil'), [{opacity:1},{opacity:0}], {duration:900,fill:'forwards'});
     $('veil').classList.remove('busy'); transitionBusy = false;
   }
   function save() {
@@ -136,7 +136,7 @@
     });
   }
   function routeBetween(from,to){
-    if(from===to){const door=approaches[to].at(-1);return [door,door];}
+    if(from===to){const door=approaches[to].at(-1);return [door,[door[0],door[1]-40]];}
     const source=from<0?[[700,490]]:[...approaches[from]].reverse();
     const route=[...source,[700,source.at(-1)[1]],[700,approaches[to][0][1]],...approaches[to]];
     return route.filter((p,n)=>!n||p[0]!==route[n-1][0]||p[1]!==route[n-1][1]);
@@ -153,7 +153,7 @@
       }else{
         showMap(false);selectPlace(i);$('world').classList.add('travelling');$('world').style.setProperty('--journey-hud',document.querySelector('.hud').getBoundingClientRect().height+'px');
         $('map-viewport').inert=true;document.querySelector('.map-controls').inert=true;$('destination').inert=true;
-        $('journey-controls').hidden=false;$('journey-heading').textContent=`${from<0?'宮城入口':puzzles[from].location} → ${puzzles[i].location}`;$('journey-status').textContent='沿著宮道循線前往';journeyProgress(0);$('journey-skip').focus({preventScroll:true});
+        $('journey-controls').hidden=false;$('journey-heading').textContent=from===i?`重訪${puzzles[i].location} · 步入廳門`:`${from<0?'宮城入口':puzzles[from].location} → ${puzzles[i].location}`;$('journey-status').textContent='正在準備主角，稍候沿宮道出發';journeyProgress(0);$('journey-skip').focus({preventScroll:true});
         $('entry-background').src='assets/'+roomBackgrounds[i];$('entry-background').alt=puzzles[i].location+'廳內景';
         const route=routeBetween(from,i),lengths=route.slice(1).map((p,n)=>Math.hypot(p[0]-route[n][0],p[1]-route[n][1])),total=lengths.reduce((a,b)=>a+b,0);
         $('journey-path').setAttribute('d',route.map((p,n)=>(n?'L':'M')+p.join(' ')).join(' '));$('journey-route').toggleAttribute('hidden',total===0);$('journey-path').style.strokeDasharray=String(total);$('journey-path').style.strokeDashoffset=String(total);
@@ -161,23 +161,25 @@
         const camera=(point,z)=>{const bx=Math.max(0,(1400*z-viewport.clientWidth)/2),by=Math.max(0,(788*z-viewport.clientHeight)/2);return {zoom:z,x:Math.max(-bx,Math.min(bx,(700-point[0])*z)),y:Math.max(-by,Math.min(by,(394-point[1])*z+15))};};
         const follow=(point,z=zoom)=>{view=camera(point,z);panMap();};
         heroAt(route[0]);$('world').dataset.journeyPhase='departing';
-        const initial={...view},target=camera(route[0],zoom);await journeyTween(450,t=>{const e=1-Math.pow(1-t,3);view={zoom:initial.zoom+(target.zoom-initial.zoom)*e,x:initial.x+(target.x-initial.x)*e,y:initial.y+(target.y-initial.y)*e};panMap();});
+        await new Promise(resolve=>{const current=journey;let done=false;const ready=()=>{if(done)return;done=true;current.finish=null;resolve();};current.finish=ready;$('map-hero').querySelector('img').decode().catch(()=>{}).then(ready);});$('journey-status').textContent=from===i?'密探正在走近廳門':'密探正在沿著宮道前往';
+        const initial={...view},target=camera(route[0],zoom);await journeyTween(900,t=>{const e=1-Math.pow(1-t,3);view={zoom:initial.zoom+(target.zoom-initial.zoom)*e,x:initial.x+(target.x-initial.x)*e,y:initial.y+(target.y-initial.y)*e};panMap();});
         $('world').dataset.journeyPhase='walking';$('map-hero').classList.add('walking');
-        if(total>0)await journeyTween(Math.max(2400,Math.min(4800,total*4)),t=>{
+        if(total>0)await journeyTween(from===i?3000:Math.max(6000,Math.min(10000,total*9)),t=>{
           let distance=t*total,segment=0;while(segment<lengths.length-1&&distance>lengths[segment]){distance-=lengths[segment];segment++;}
           const a=route[segment],b=route[segment+1],ratio=lengths[segment]?distance/lengths[segment]:1,point=[a[0]+(b[0]-a[0])*ratio,a[1]+(b[1]-a[1])*ratio];
           heroAt(point,b[0]<a[0]?-1:1);follow(point);$('journey-path').style.strokeDashoffset=String(total*(1-t));journeyProgress(t*78);
         });
         $('map-hero').classList.remove('walking');$('world').dataset.journeyPhase='approaching';$('journey-status').textContent=`已抵達${puzzles[i].location}，準備入廳`;
-        const door=route.at(-1);await journeyTween(650,t=>{const e=t*t*(3-2*t);follow(door,zoom+e*.4);$('map-hero').style.opacity=String(1-e*.65);journeyProgress(78+t*8);});
+        await journeyTween(1200,()=>{});
+        const door=route.at(-1);await journeyTween(1400,t=>{const e=t*t*(3-2*t);follow(door,zoom+e*.4);$('map-hero').style.opacity=String(1-e*.65);journeyProgress(78+t*8);});
         if(!journey.skipped){
           $('entry-title').textContent=puzzles[i].location;$('hall-entry').dataset.progress='0';$('entry-door-left').style.transform=$('entry-door-right').style.transform='none';$('entry-hero').style.cssText='';$('entry-background').style.transform='scale(1)';$('hall-entry').showModal();
           core.enter(state,i);room(i);save();
-          await journeyTween(1800,t=>{
+          await journeyTween(4600,t=>{
             const open=Math.max(0,Math.min(1,(t-.12)/.65)),walk=Math.max(0,Math.min(1,(t-.35)/.6));
             $('hall-entry').dataset.progress=String(t);$('entry-door-left').style.transform=`translateX(${-open*102}%) rotateY(${-open*35}deg)`;$('entry-door-right').style.transform=`translateX(${open*102}%) rotateY(${open*35}deg)`;
             $('entry-background').style.transform=`scale(${1+t*.1})`;$('entry-hero').style.transform=`translateY(${-walk*70}px) scale(${1-walk*.35})`;$('entry-hero').style.opacity=String(1-Math.max(0,Math.min(1,(t-.65)/.25)));journeyProgress(86+t*14);
-          });$('hall-entry').close();
+          });await journeyTween(800,()=>{});$('hall-entry').close();
         }else{core.enter(state,i);room(i);save();}
       }
       if(!state.levels[i].filmSeen)film(talk);else talk();
@@ -297,15 +299,15 @@
     $('film-title').textContent=[p.location+' · '+(i===0?'暗帳初現':'線索未斷'),p.title,'把線索變成證據'][filmIndex];
     $('film-text').textContent=[i===0?'宮中帳冊與實物數量對不上。你奉命暗查，第一條線索指向御膳房。':`前一份證據把你帶到${p.location}。新的紀錄看似無誤，卻藏著另一種矛盾。`,p.intro[0],`與${p.npc}交談，查找三處物件，再親手操作機關。`][filmIndex];
     $('film-count').textContent=`${String(filmIndex+1).padStart(2,'0')} / 03`;$('film-next').textContent=filmIndex===2?'進入對話':'下一幕';
-    animate($('film-image'),[{opacity:.4,scale:1},{opacity:1,scale:1.05}],{duration:reduced.matches?0:5200,fill:'forwards',easing:'linear'});
-    animate($('film-caption'),[{opacity:0,transform:'translateY(15px)'},{opacity:1,transform:'translateY(0)'}],{duration:700});
-    if(filmAuto&&!reduced.matches)filmTimer=setTimeout(filmAdvance,6500);
+    animate($('film-image'),[{opacity:.4,scale:1},{opacity:1,scale:1.05}],{duration:reduced.matches?0:7800,fill:'forwards',easing:'linear'});
+    animate($('film-caption'),[{opacity:0,transform:'translateY(15px)'},{opacity:1,transform:'translateY(0)'}],{duration:1000});
+    if(filmAuto&&!reduced.matches)filmTimer=setTimeout(filmAdvance,9000);
   }
   function filmAdvance(){if(!$('film').open)return;if(filmIndex<2){filmIndex++;filmRender();}else finishFilm();}
   function finishFilm(){clearFilmTimer();$('film').close();state.levels[state.current].filmSeen=true;save();if(filmAfter)filmAfter();}
   function film(after){filmIndex=0;filmAfter=after;filmAuto=!reduced.matches;$('film-auto').textContent=`自動播放：${filmAuto?'開':'關'}`;$('film').showModal();filmRender();}
   $('film-next').onclick=filmAdvance;$('film-skip').onclick=finishFilm;
-  $('film-auto').onclick=()=>{filmAuto=!filmAuto;$('film-auto').textContent=`自動播放：${filmAuto?'開':'關'}`;clearFilmTimer();if(filmAuto)filmTimer=setTimeout(filmAdvance,6500);};
+  $('film-auto').onclick=()=>{filmAuto=!filmAuto;$('film-auto').textContent=`自動播放：${filmAuto?'開':'關'}`;clearFilmTimer();if(filmAuto)filmTimer=setTimeout(filmAdvance,9000);};
   $('film').addEventListener('cancel',e=>{e.preventDefault();finishFilm();});
   $('replay').onclick=()=>film(()=>{});
   $('enter').onclick=()=>beginJourney(selected);
