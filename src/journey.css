@@ -1,0 +1,38 @@
+#map-hero{position:absolute;left:0;top:0;width:50px;height:72px;margin:-68px 0 0 -25px;z-index:6;pointer-events:none;will-change:transform}
+.map-walker,.map-walker img{width:100%;height:100%;object-fit:contain}
+.map-walker img{transform:scaleX(var(--facing,1));filter:drop-shadow(0 3px 2px #172e2777)}
+.hero-shadow{position:absolute;left:12px;bottom:0;width:26px;height:6px;background:#162e2c66;border-radius:50%;filter:blur(2px)}
+.walking .map-walker{animation:palace-step .48s ease-in-out infinite alternate}
+@keyframes palace-step{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(-4px) rotate(1deg)}}
+#journey-route{position:absolute;inset:0;width:1400px;height:788px;z-index:4;pointer-events:none;overflow:visible}
+#journey-path{fill:none;stroke:#ffe3a0;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 3px #80632e)}
+#world.travelling{height:calc(100dvh - var(--journey-hud,86px) - 30px);min-height:360px}
+.travelling .world-title,.travelling .destination,.travelling .map-controls{display:none}
+.travelling .map-node{opacity:.55}
+.travelling .map-node.selected{opacity:1}
+#journey-controls{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:8;width:min(470px,calc(100% - 30px));padding:15px 24px;background:#18382feF;border:1px solid #c2a16a;border-radius:6px;color:#fff1cb;text-align:center;box-shadow:0 6px 30px #10251c55}
+#journey-controls h2{font-size:24px;margin:0 0 7px;letter-spacing:2px}
+#journey-controls p{margin:0 0 8px;font-size:12px}
+#journey-controls .eyebrow{font-size:10px;color:#d9b977;letter-spacing:5px}
+#journey-controls button{font-size:12px;min-height:40px;color:#f6e5bd;background:#304d40;border-color:#b99b61;margin-top:9px}
+#journey-progress{height:4px;background:#e0cb9c33;overflow:hidden;border-radius:3px}
+#journey-progress i{display:block;width:100%;height:100%;background:#e8c77e;transform:scaleX(0);transform-origin:left}
+#hall-entry{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;padding:0;margin:0;border:0;background:#142c27;overflow:hidden;color:#ffeac0}
+#hall-entry::backdrop{background:#142c27}
+.entry-scene{position:relative;width:100%;height:100%;overflow:hidden;perspective:1200px}
+#entry-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;will-change:transform}
+.entry-scene:after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(#142b2666,transparent 35%,transparent 60%,#10251ec9)}
+.entry-door{position:absolute;top:0;bottom:0;width:50.2%;z-index:2;background:repeating-linear-gradient(90deg,#3d2924 0,#5b3830 5%,#684036 10%,#503027 15%);border:8px solid #8c7045;box-shadow:inset 0 0 60px #1d1712aa;will-change:transform}
+.entry-door:before{content:"";position:absolute;inset:9% 10%;border:3px solid #b58c4e;box-shadow:inset 0 0 0 8px #302d2266,0 0 0 1px #d3ad6c77}
+.entry-door span{position:absolute;top:50%;width:42px;height:42px;border:6px solid #c3a067;border-radius:50%;box-shadow:0 4px 7px #160e0a99}
+#entry-door-left{left:0;transform-origin:left center}
+#entry-door-right{right:0;transform-origin:right center}
+#entry-door-left span{right:5%}#entry-door-right span{left:5%}
+#entry-hero{position:absolute;left:50%;bottom:3%;height:55%;width:240px;margin-left:-120px;z-index:4;transform-origin:center bottom;will-change:transform,opacity}
+#entry-hero img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 12px #101b19aa)}
+.entry-caption{position:absolute;top:10%;left:5%;right:5%;text-align:center;z-index:5;text-shadow:0 3px 14px #101c18}
+.entry-caption h2{font:52px serif;letter-spacing:12px;margin:12px 0}
+.entry-caption .eyebrow{font-size:12px;letter-spacing:6px;color:#f4db9f}
+#entry-skip{position:absolute;right:35px;bottom:30px;z-index:6;background:#193b32df;color:#ffecc0;border-color:#ba9c62;min-height:44px}
+@media(max-width:720px){#journey-controls{padding:12px 16px;bottom:15px}#journey-controls h2{font-size:20px}.entry-caption h2{font-size:36px;letter-spacing:8px}.entry-caption .eyebrow{font-size:10px;letter-spacing:3px}.entry-door{border-width:4px}.entry-door span{width:29px;height:29px;border-width:4px}#entry-hero{height:47%;width:180px;margin-left:-90px}#entry-skip{right:15px;bottom:20px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.walking .map-walker{animation:none}}

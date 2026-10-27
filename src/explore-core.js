@@ -4,9 +4,9 @@
 })(globalThis, function () {
   'use strict';
   const blank = () => ({ clues: [], values: [1,1,1], factors: [], pairs: [], attempts: 0, hints: 0, complete: false, filmSeen: false, talkSeen: false });
-  function fresh() { return { version: 3, current: -1, muted: true, levels: Array.from({ length: 12 }, blank) }; }
+  function fresh() { return { version: 3, current: -1, place: -1, muted: true, levels: Array.from({ length: 12 }, blank) }; }
   function unlocked(s, i) { return Number.isInteger(i) && i >= 0 && i < 12 && (i === 0 || s.levels[i - 1].complete); }
-  function enter(s, i) { if (!unlocked(s, i)) return false; s.current = i; return true; }
+  function enter(s, i) { if (!unlocked(s, i)) return false; s.current = i; s.place=i; return true; }
   function collect(s, i, id, p) {
     if (!unlocked(s, i) || !p.clues.some(c => c.id === id)) return false;
     if (!s.levels[i].clues.includes(id)) s.levels[i].clues.push(id);
@@ -48,6 +48,8 @@
         if (i > 0 && l.complete && !s.levels[i - 1].complete) return null;
       }
       if (s.current >= 0 && !unlocked(s, s.current)) return null;
+      if(s.place===undefined)s.place=s.current>=0?s.current:Math.min(evidence(s)-1,11);
+      if(!Number.isInteger(s.place)||s.place < -1||s.place>11||s.place>=0&&!unlocked(s,s.place))return null;
       return s;
     } catch { return null; }
   }

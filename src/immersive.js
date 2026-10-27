@@ -39,6 +39,10 @@
   const materialActors=['kitchen_steward.png','garden_attendant.png','clinic_doctor.png','tailor_officer.png','library_officer.png','treasury_officer.png','banquet_officer.png','alliance_officer.png','cold_palace_officer.png','guards_officer.png','gate_officer.png','throne_officer.png'];
   const materialEvidence=['props/evidence_seal.png','props/garden_letter.png','props/clinic_letter.png','props/tailor_evidence.png','props/library_evidence.png','props/treasury_evidence.png','props/banquet_evidence.png','props/alliance_evidence.png','props/cold_palace_evidence.png','props/guards_evidence.png','props/gate_evidence.png','props/throne_evidence.png'];
   const laterBackgrounds=['backgrounds/bg_05_library.png', 'backgrounds/bg_06_treasury.png', 'backgrounds/bg_07_banquet.png', 'backgrounds/bg_08_alliance.png', 'backgrounds/bg_09_cold_palace.png', 'backgrounds/bg_10_guards.png', 'backgrounds/bg_11_gate.png','backgrounds/bg_12_throne.png'];
+  const roomBackgrounds=['backgrounds/bg_01_kitchen.png','backgrounds/bg_02_garden.png','backgrounds/bg_03_clinic.png','backgrounds/bg_04_tailor.png',...laterBackgrounds];
+  // Entrance approaches follow the illustrated axis and cross-courtyard lanes.
+  const approaches=[[[430,270],[430,215],[300,215]],[[430,330],[400,330]],[[390,490],[185,490]],[[1010,490],[920,490]],[[700,490],[570,490]],[[1010,490],[1030,580],[1140,580]],[[1010,210],[1100,270]],[[1010,390],[1030,390]],[[1010,210],[1110,190],[1200,170]],[[390,490],[330,570]],[[700,490]],[[700,220]]];
+  let journey=null;
   const materialCG=['cg_01_ledger_closeup.png','cg_02_garden.png','cg_03_clinic.png','cg_04_tailor.png','cg_05_library.png','cg_06_treasury.png','cg_07_banquet.png','cg_08_alliance.png','cg_09_cold_palace.png','cg_10_guards.png','cg_11_gate.png','cg_12_throne.png'];
   $('map-canvas').classList.add('has-map-art');
   const npcImage=asset('characters/kitchen_steward.png','npc-art','御膳房總管立繪');npcImage.hidden=true;$('npc-talk').prepend(npcImage);
@@ -79,6 +83,7 @@
   }
   function panMap() { $('map-canvas').style.transform = `translate(calc(-50% + ${view.x}px),calc(-50% + ${view.y}px)) scale(${view.zoom})`; }
   function focusMapTarget() {
+    if(journey){$('world').style.setProperty('--journey-hud',document.querySelector('.hud').getBoundingClientRect().height+'px');return;}
     if(innerWidth>=720)return;
     view.zoom=.64;view.x=(700-coords[selected][0])*view.zoom-65;view.y=(394-coords[selected][1]*.788)*view.zoom-75;panMap();
   }
@@ -114,8 +119,77 @@
   }
   function showMap(persist=true) {
     state.current=-1;if(persist)save();$('world').hidden=false;$('room').hidden=true;$('workbench').hidden=true;
+    heroAt(state.place<0?[700,490]:approaches[state.place].at(-1));
     selectPlace(Math.min(core.evidence(state),11));focusMapTarget();panMap();window.scrollTo(0,0);
   }
+  function heroAt(point,facing=1){$('map-hero').style.transform=`translate(${point[0]}px,${point[1]}px)`;$('map-hero').style.setProperty('--facing',String(facing));}
+  function journeyProgress(value){$('journey-progress').setAttribute('aria-valuenow',String(Math.round(value)));$('journey-progress').firstElementChild.style.transform=`scaleX(${value/100})`;}
+  function skipJourney(){if(journey){journey.skipped=true;journey.finish?.();}}
+  function journeyTween(duration,draw){
+    const current=journey;
+    if(current.skipped||reduced.matches){current.skipped=true;draw(1);return Promise.resolve();}
+    return new Promise(resolve=>{
+      let start,frame;
+      const finish=()=>{cancelAnimationFrame(frame);draw(1);current.finish=null;resolve();};current.finish=finish;
+      const tick=now=>{if(current.skipped||reduced.matches){current.skipped=true;finish();return;}start??=now;const t=Math.min(1,(now-start)/duration);draw(t);if(t<1)frame=requestAnimationFrame(tick);else{current.finish=null;resolve();}};
+      frame=requestAnimationFrame(tick);
+    });
+  }
+  function routeBetween(from,to){
+    if(from===to){const door=approaches[to].at(-1);return [door,door];}
+    const source=from<0?[[700,490]]:[...approaches[from]].reverse();
+    const route=[...source,[700,source.at(-1)[1]],[700,approaches[to][0][1]],...approaches[to]];
+    return route.filter((p,n)=>!n||p[0]!==route[n-1][0]||p[1]!==route[n-1][1]);
+  }
+  async function beginJourney(i){
+    if(transitionBusy||!core.unlocked(state,i))return;
+    transitionBusy=true;const from=state.place,previousView={...view};journey={skipped:reduced.matches,finish:null};
+    $('home').inert=$('journal-open').inert=$('settings').inert=true;
+    try{
+      if(reduced.matches){
+        $('veil').classList.add('busy');await $('veil').animate([{opacity:0},{opacity:1}],{duration:120,fill:'forwards'}).finished;
+        core.enter(state,i);room(i);save();
+        await $('veil').animate([{opacity:1},{opacity:0}],{duration:120,fill:'forwards'}).finished;
+      }else{
+        showMap(false);selectPlace(i);$('world').classList.add('travelling');$('world').style.setProperty('--journey-hud',document.querySelector('.hud').getBoundingClientRect().height+'px');
+        $('map-viewport').inert=true;document.querySelector('.map-controls').inert=true;$('destination').inert=true;
+        $('journey-controls').hidden=false;$('journey-heading').textContent=`${from<0?'宮城入口':puzzles[from].location} → ${puzzles[i].location}`;$('journey-status').textContent='沿著宮道循線前往';journeyProgress(0);$('journey-skip').focus({preventScroll:true});
+        $('entry-background').src='assets/'+roomBackgrounds[i];$('entry-background').alt=puzzles[i].location+'廳內景';
+        const route=routeBetween(from,i),lengths=route.slice(1).map((p,n)=>Math.hypot(p[0]-route[n][0],p[1]-route[n][1])),total=lengths.reduce((a,b)=>a+b,0);
+        $('journey-path').setAttribute('d',route.map((p,n)=>(n?'L':'M')+p.join(' ')).join(' '));$('journey-route').toggleAttribute('hidden',total===0);$('journey-path').style.strokeDasharray=String(total);$('journey-path').style.strokeDashoffset=String(total);
+        const viewport=$('map-viewport'),zoom=Math.max(innerWidth<720?1.15:1.3,viewport.clientWidth/1400,viewport.clientHeight/788)*1.02;
+        const camera=(point,z)=>{const bx=Math.max(0,(1400*z-viewport.clientWidth)/2),by=Math.max(0,(788*z-viewport.clientHeight)/2);return {zoom:z,x:Math.max(-bx,Math.min(bx,(700-point[0])*z)),y:Math.max(-by,Math.min(by,(394-point[1])*z+15))};};
+        const follow=(point,z=zoom)=>{view=camera(point,z);panMap();};
+        heroAt(route[0]);$('world').dataset.journeyPhase='departing';
+        const initial={...view},target=camera(route[0],zoom);await journeyTween(450,t=>{const e=1-Math.pow(1-t,3);view={zoom:initial.zoom+(target.zoom-initial.zoom)*e,x:initial.x+(target.x-initial.x)*e,y:initial.y+(target.y-initial.y)*e};panMap();});
+        $('world').dataset.journeyPhase='walking';$('map-hero').classList.add('walking');
+        if(total>0)await journeyTween(Math.max(2400,Math.min(4800,total*4)),t=>{
+          let distance=t*total,segment=0;while(segment<lengths.length-1&&distance>lengths[segment]){distance-=lengths[segment];segment++;}
+          const a=route[segment],b=route[segment+1],ratio=lengths[segment]?distance/lengths[segment]:1,point=[a[0]+(b[0]-a[0])*ratio,a[1]+(b[1]-a[1])*ratio];
+          heroAt(point,b[0]<a[0]?-1:1);follow(point);$('journey-path').style.strokeDashoffset=String(total*(1-t));journeyProgress(t*78);
+        });
+        $('map-hero').classList.remove('walking');$('world').dataset.journeyPhase='approaching';$('journey-status').textContent=`已抵達${puzzles[i].location}，準備入廳`;
+        const door=route.at(-1);await journeyTween(650,t=>{const e=t*t*(3-2*t);follow(door,zoom+e*.4);$('map-hero').style.opacity=String(1-e*.65);journeyProgress(78+t*8);});
+        if(!journey.skipped){
+          $('entry-title').textContent=puzzles[i].location;$('hall-entry').dataset.progress='0';$('entry-door-left').style.transform=$('entry-door-right').style.transform='none';$('entry-hero').style.cssText='';$('entry-background').style.transform='scale(1)';$('hall-entry').showModal();
+          core.enter(state,i);room(i);save();
+          await journeyTween(1800,t=>{
+            const open=Math.max(0,Math.min(1,(t-.12)/.65)),walk=Math.max(0,Math.min(1,(t-.35)/.6));
+            $('hall-entry').dataset.progress=String(t);$('entry-door-left').style.transform=`translateX(${-open*102}%) rotateY(${-open*35}deg)`;$('entry-door-right').style.transform=`translateX(${open*102}%) rotateY(${open*35}deg)`;
+            $('entry-background').style.transform=`scale(${1+t*.1})`;$('entry-hero').style.transform=`translateY(${-walk*70}px) scale(${1-walk*.35})`;$('entry-hero').style.opacity=String(1-Math.max(0,Math.min(1,(t-.65)/.25)));journeyProgress(86+t*14);
+          });$('hall-entry').close();
+        }else{core.enter(state,i);room(i);save();}
+      }
+      if(!state.levels[i].filmSeen)film(talk);else talk();
+    }finally{
+      if($('hall-entry').open)$('hall-entry').close();$('world').classList.remove('travelling');delete $('world').dataset.journeyPhase;$('journey-controls').hidden=true;$('journey-route').toggleAttribute('hidden',true);$('map-hero').classList.remove('walking');$('map-hero').style.opacity='1';heroAt(state.place<0?[700,490]:approaches[state.place].at(-1));
+      $('veil').classList.remove('busy');$('map-viewport').inert=false;document.querySelector('.map-controls').inert=false;$('destination').inert=false;$('home').inert=$('journal-open').inert=$('settings').inert=false;
+      view=previousView;panMap();journey=null;transitionBusy=false;
+    }
+  }
+  $('journey-skip').onclick=$('entry-skip').onclick=skipJourney;
+  $('hall-entry').addEventListener('cancel',e=>{e.preventDefault();skipJourney();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&journey){e.preventDefault();skipJourney();}});
   function clueOpen(index, collectedOnly=false) {
     const i=state.current,p=puzzles[i],clue=p.clues[index];
     pendingClue=collectedOnly?null:{i,id:clue.id};
@@ -234,7 +308,7 @@
   $('film-auto').onclick=()=>{filmAuto=!filmAuto;$('film-auto').textContent=`自動播放：${filmAuto?'開':'關'}`;clearFilmTimer();if(filmAuto)filmTimer=setTimeout(filmAdvance,6500);};
   $('film').addEventListener('cancel',e=>{e.preventDefault();finishFilm();});
   $('replay').onclick=()=>film(()=>{});
-  $('enter').onclick=()=>{const i=selected;if(!core.enter(state,i))return;save();changeScene(()=>{room(i);if(!state.levels[i].filmSeen)film(talk);else talk();});};
+  $('enter').onclick=()=>beginJourney(selected);
   $('return-map').onclick=()=>changeScene(showMap);$('home').onclick=e=>{e.preventDefault();changeScene(showMap);};
   function openPuzzle(){
     const i=state.current,l=state.levels[i];
@@ -388,9 +462,10 @@
     $('victory').classList.toggle('with-cg',i<materialCG.length);
     $('victory-title').textContent=p.location+' · 證據到手';$('victory-explanation').textContent=p.explanation;
     $('victory-followup').textContent=i===11?'十二份證據完成回驗。密詔與虛報帳冊的矛盾已公開，你以推理終結了這場宮廷密謀。':`藏在機關裡的記錄指向${puzzles[i+1].location}。下一局已解鎖，調查尚未結束。`;
+    $('victory-next').textContent=i===11?'返回宮城':'前往下一廳 →';
     $('victory').showModal();animate($('victory'),[{opacity:0,transform:'scale(.94)'},{opacity:1,transform:'scale(1)'}],{duration:650});
   };
-  $('victory-next').onclick=()=>{$('victory').close();changeScene(showMap);};$('victory-stay').onclick=()=>$('victory').close();
+  $('victory-next').onclick=()=>{const i=state.current;$('victory').close();if(i<11)beginJourney(i+1);else changeScene(showMap);};$('victory-stay').onclick=()=>$('victory').close();
   function journalTab(evidence) {
     $('journal-content').hidden=evidence;$('evidence-case').hidden=!evidence;
     $('journal-clues-tab').setAttribute('aria-pressed',String(!evidence));$('journal-evidence-tab').setAttribute('aria-pressed',String(evidence));
@@ -424,6 +499,7 @@
   $('reset-confirm').onclick=()=>{state=core.fresh();$('reset-dialog').close();save();showMap();};
   // Restore the location without replaying the film; all clues remain in the hand-written journal.
   if(state.current>=0){room(state.current);}else showMap(false);
+  heroAt(state.place<0?[700,490]:approaches[state.place].at(-1));
   selectPlace(Math.min(core.evidence(state),11));panMap();
   renderHud();
   $('save-message').textContent=warning||'素材已整合：宮城總圖與十二局專屬場景、人物、道具及過場';
