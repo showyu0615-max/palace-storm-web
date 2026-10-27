@@ -57,7 +57,7 @@
   button.onclick=e=>{e.stopPropagation();if(!unlocked){unlocked=true;enabled=true;}else enabled=!enabled;save();sync();};
   slider.oninput=()=>{volume=Number(slider.value)/100;save();sync();};
   document.addEventListener('click',unlock);
-  document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')unlock();});
+  document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('#music'))unlock();});
   document.addEventListener('visibilitychange',sync);
   render();
 })();
