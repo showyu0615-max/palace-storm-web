@@ -1,0 +1,12 @@
+.deduction-section{margin:12px 0 22px;text-align:left}
+.deduction-section h3{font-size:17px;color:#27443d;margin:0 0 10px}
+.deduction-choices{display:flex;flex-wrap:wrap;gap:9px}
+.deduction-choices button{min-height:44px;padding:9px 14px;background:#f8f0db;color:#294239;border:1px solid #b49a63;border-radius:5px}
+.deduction-choices button.selected{background:#284b40;color:#fff4d3;border-color:#284b40;box-shadow:0 0 0 2px #c3a057}
+.pair-ledger{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.pair-ledger p{margin:0;padding:7px 12px;border:1px solid #8d9d85;border-radius:4px;background:#edf0de}
+.pair-ledger .invalid-pair{background:#f6dfd4;color:#8c3026;border-color:#ba7864}
+.square-board{display:grid;gap:4px;width:min(330px,100%);margin:20px auto}
+.square-board span{display:grid;place-items:center;aspect-ratio:1;min-width:0;font-size:12px;background:#496e5b;color:#e0e7d1;border-radius:3px}
+.square-board .new-tile{background:#d8b25d;color:#3e361c}
+@media(max-width:720px){.deduction-section h3{font-size:16px}.deduction-choices{gap:7px}.deduction-choices button{padding:8px 10px;font-size:14px}.pair-ledger p{font-size:13px}.square-board{width:min(270px,100%)}}

@@ -3,7 +3,7 @@
   const core = window.ExploreCore;
   const puzzles = window.PalacePuzzles;
   const $ = id => document.getElementById(id);
-  const KEY = 'palace-exploration-v2';
+  const KEY = 'palace-exploration-v3';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let state = core.fresh(), warning = '', selected = 0, pendingClue = null, transitionBusy = false, audio;
   try {
@@ -12,19 +12,22 @@
   } catch { warning = '瀏覽器禁止儲存，當次可玩，關閉後無法延續。'; }
   if (!Array.isArray(puzzles) || puzzles.length !== 12) { $('save-message').textContent = '題庫載入失敗，請保留src資料夾與入口檔相對位置。'; return; }
   const config = [
-    { labels:['推定總顆數','平均分成幾袋','每袋顆數'], max:[60,24,24], glyphs:['果','盒','令'], initial:[44,5,8], note:'先從兩種分裝規則找出總數，再挑出每袋至少5顆時最多的袋數。' },
-    { labels:['甲隊間隔（分鐘）','乙隊間隔（分鐘）','最早接頭（第幾分鐘）'], max:[15,15,60], offset:[2,4], initial:[5,7,12], glyphs:['東','西','燈'], note:'拖動時間，觀察兩排巡邏標記。首次到達時間不同，不能直接填最小公倍數。' },
-    { labels:['真藥方編號','定位貨架號','原有藥包數'], max:[60,4,60], initial:[31,1,48], glyphs:['藥','櫃','簿'], note:'點藥罐選出符合全部條件的編號，再定位貨架並還原藥包數。' },
-    { labels:['每段長度（公分）','青緞段數','紅緞段數'], max:[60,30,30], totals:[84,126], initial:[20,4,6], glyphs:['青','紅','尺'], note:'移動裁布尺，觀察兩匹布的切口與餘料；相同段長且無剩料，還要盡可能長。' },
-    { labels:['質底數 p','p 的指數 a','3 的指數 b'], max:[7,6,6], initial:[2,2,2], glyphs:['卷','脊','蠟'], note:'按質數籌碼調整底數，再調整兩側指數，將完整乘積還原為72。' },
-    { labels:['賞賜份數','每份銀錢（枚）','每份米糧（袋）'], max:[60,30,30], totals:[72,90], initial:[12,6,7], glyphs:['銀','米','賞'], note:'調整份數，看相同賞賜如何消耗兩種物資；要全數分完且份數最多。' },
-    { labels:['鼓隊間隔（分鐘）','舞隊間隔（分鐘）','可接頭（第幾分鐘）'], max:[20,20,60], offset:[0,0], initial:[6,10,20], glyphs:['鼓','舞','箋'], note:'用合演時間軸確認兩隊同台，並避開11時20分之前的時刻。' },
-    { labels:['最多禮包份數','再次送信間隔（日）','兩項合成的盟印碼'], max:[40,60,60], initial:[6,12,18], glyphs:['禮','信','印'], note:'把兩份盟約分配到正確的推理方法，再操作數量與時間，組成盟印。' },
-    { labels:['盤點日（第幾日）','期間新增口糧（份）','盤點後剩餘（份）'], max:[60,60,60], initial:[12,16,44], glyphs:['糧','途','曆'], note:'拖曳盤點日期，逐日查看入庫和消耗。盤點當天的兩路補給都必須計入。' },
-    { labels:['留營小隊數','每隊弓手數','每隊槍手數'], max:[60,30,30], totals:[72,108], initial:[18,4,5], glyphs:['冊','調','旗'], note:'先扣除被抽調的兵力，再重編成完全相同的小隊。不可留人，也不可把兩個兵種混算。' },
-    { labels:['甲班換崗間隔','乙班換崗間隔','通門時刻（第幾分鐘）'], max:[20,20,60], offset:[0,0], initial:[5,10,24], glyphs:['甲','乙','禁'], note:'找到同步換崗後還要檢查禁行令；紅色區間內就算同步也不能通過。' },
-    { labels:['最多禮包份數','最少等待日數','重複計數的質因數個數'], max:[60,60,20], initial:[3,12,4], glyphs:['賞','時','詔'], note:'依序接合三項證據。最後一格要計質因數總個數，不是種類數，也不是乘積本身。' }
+    {labels:['末位數字','三位數的數字和','可證成的整除數'],max:[9,20,10],initial:[1,8,4],note:'補上43□的末位，核對偶數與數字和，再選出能由2與3的整除性證成的令牌。'},
+    {labels:['密牌號','除以5的商','除以3的商'],max:[30,10,10],initial:[12,2,4],note:'點選密牌觀察兩道餘數；商會隨牌號更新。找出同時符合兩份記錄的牌號。'},
+    {labels:['真藥方編號','定位貨架號','原有藥包數'],max:[60,4,60],initial:[31,1,48],note:'點藥罐選出符合全部條件的編號，再定位貨架並還原藥包數。'},
+    {labels:['每段長度（公分）','青緞段數','紅緞段數'],max:[60,30,30],totals:[84,126],initial:[20,4,6],note:'移動裁布尺，觀察切口與餘料；相同段長且無剩料，還要盡可能長。'},
+    {labels:['質底數 p','p 的指數 a','3 的指數 b'],max:[7,6,6],initial:[2,2,2],note:'按質數籌碼調整底數，再調整指數，將完整乘積還原為72。'},
+    {labels:['已選配對數','不同正因數個數','中央因數'],max:[7,14,36],initial:[0,0,0],note:'選齊乘積36且較小的數在前的配對；翻轉不重算，平方根只列一次。'},
+    {labels:['鼓隊間隔（分鐘）','舞隊間隔（分鐘）','可接頭（第幾分鐘）'],max:[20,20,60],offset:[0,0],initial:[6,10,20],note:'用合演時間軸確認兩隊同台，並避開11時20分之前的時刻。'},
+    {labels:['錯誤說法編號','反例數字','修正句編號'],max:[3,11,3],initial:[2,7,1],note:'先找錯誤的全稱說法，再選能推翻它的反例，最後蓋上正確的修正印章。'},
+    {labels:['正方形每邊格數','需要補入份數','總份數'],max:[10,60,100],initial:[6,1,36],note:'原有40份，移動方陣邊長；只能補不能拿走，選新增最少的完整正方形。'},
+    {labels:['兵符編號','末兩位組成的數','所有位數的數字和'],max:[3,60,20],initial:[1,34,9],note:'點兵符並觀察末兩位與數字和；偶數不一定能被4整除。'},
+    {labels:['暗號門牌','除以4的商','除以6的商'],max:[39,10,10],initial:[25,6,4],note:'在25至39中逐一驗牌，同時滿足除4餘1、除6餘3。不是換崗時間題。'},
+    {labels:['36的最小質因數','與它配對的正因數','重複計數的質因數個數'],max:[7,36,20],initial:[3,12,1],note:'先回驗兩因數乘積為36，再逐次拆出質數直到剩1；重複出現也要計數。'}
   ];
+  const diverse=[0,1,5,7,8,9,10];
+  const pairOptions=[[1,36],[2,18],[3,12],[4,9],[5,7],[6,6],[9,4]];
+  function minimum(i,n){return i===1&&n===0?10:i===10&&n===0?25:i===5||i===0&&n===0||i===2&&n===1||i===8&&n===1?0:1;}
   const coords = [[240,170],[250,365],[165,500],[960,530],[475,510],[1190,690],[1160,315],[1200,480],[1250,135],[230,700],[700,790],[700,145]];
   let view = { zoom: innerWidth < 720 ? .64 : .83, x:0, y:0 };
   const palaceSVG = '<svg viewBox="0 0 160 100" aria-hidden="true"><path class="roof" d="M20 25Q30 21 38 7H122Q130 21 140 25L154 31H6Z"/><path class="roof-detail" d="M34 18H126M22 26H138"/><path class="wall" d="M20 33H140V83H20Z"/><path class="wood" d="M28 35H35V80H28ZM74 35H86V80H74ZM125 35H132V80H125Z"/><path class="plaque" d="M55 38H105V53H55Z"/><path fill="#6e7a62" d="M12 84H148V91H12ZM3 92H157V98H3Z"/><path fill="#87957a" d="M41 58H62V76H41ZM99 58H120V76H99Z"/></svg>';
@@ -116,7 +119,7 @@
   function clueOpen(index, collectedOnly=false) {
     const i=state.current,p=puzzles[i],clue=p.clues[index];
     pendingClue=collectedOnly?null:{i,id:clue.id};
-    $('clue-title').textContent=clue.title;$('clue-text').textContent=clue.text;$('clue-art').textContent=config[i].glyphs[index];
+    $('clue-title').textContent=clue.title;$('clue-text').textContent=clue.text;$('clue-art').textContent=clue.title;
     $('clue-art').classList.toggle('with-asset',i<materialActors.length);
     if(i<materialActors.length){$('clue-art').replaceChildren(asset(materialProps[i][index],'clue-prop',clue.title));}
     $('clue-close').textContent=collectedOnly?'收好手札':'記入手札';
@@ -178,18 +181,18 @@
   };
   $('dialogue').addEventListener('cancel',()=>{if(dialogueAfter)dialogueAfter();});
   const characterLines=[
-    ['「噓……這批果子的總數，昨夜還清清楚楚。今早，墨字卻被人潑濕了。」','「若報錯數，罪名就落在御膳房。果籃、食盒、分裝令還在，請你替我查個明白。」'],
-    ['「你來遲了一步，又早了一步。宮裡的人，最會拿時辰騙人。」','「兩隊侍衛各走各的花徑。若只照同時出發的算法，密會的人早就散了。」'],
+    ['「噓……這批果子的總數，昨夜還清清楚楚。今早，最後一位卻被人刮去了。」','「若報錯數，罪名就落在御膳房。果籃、食盒、分裝令還在，請你替我查個明白。」'],
+    ['「你來遲了一步，又早了一步。宮裡的人，最會拿時辰騙人。」','「這回暗號藏在牌號的餘數裡。東、西兩份記錄各只說了一半，你得一起核對。」'],
     ['「藥能救人，假藥方卻能害人。別因那編號看著像個奇數，就信了它。」','「有人換過藥籤，但櫃門規則還在。你若找到真正的那包藥，我便敢出面作證。」'],
     ['「她們說是我剪壞了錦緞。可你看，連量布的記錄都被拆散了。」','「我不求你信我，只求你親手量一遍。裁得最長又無剩料，謊話自然站不住。」'],
     ['「這封密詔，我看守了二十年。封蠟上的數字，昨夜卻換了位置。」','「鎖認的是質因數，不認看似相等的合數。你若能還原，我就把卷軸交給你。」'],
-    ['「賞賜人人有份？哼，有人恨不得同一箱銀錢報上兩次。」','「箱標沒法說謊。把銀與米一份份排開，讓我看看最多到底能分幾份。」'],
+    ['「賞賜人人有份？哼，有人恨不得同一箱銀錢報上兩次。」','「箱標寫著36。請把不同的因數配對排出來，別讓翻轉的同一對又報一次帳。」'],
     ['「鼓點不會等人，密使也不會。錯過一次合演，未必就該等到天黑。」','「我的便箋另有時限。請把兩隊的節奏排在同一條時間上，再來回話。」'],
-    ['「想結盟，先證明你分得清：有些事要分，有些事要等。」','「兩份盟約只差幾個字，算錯一步，盟印就落入對方手裡。你會怎麼選？」'],
-    ['「冷宮的人，數得最清楚的就是還能撐幾天。」','「別只盯著庫裡那幾袋糧。路上會有人送來，也有人刻意漏記，請把每一天都算進去。」'],
-    ['「原兵冊沒錯，錯的是拿原兵冊編今天的隊伍。」','「抽調的弓手與槍手都不在場。先點清留下的人，再把隊伍重新排起來。」'],
-    ['「我能替你守住這道門，卻不能讓你撞上禁行令。」','「兩班同時換崗只是一半條件。若那一刻仍在禁行，你帶著證據也走不出去。」'],
-    ['「十二處宮門，你竟真走到了這裡。可零碎的指控，動不了朕的印。」','「把賞賜、時序、密詔連成一條能回驗的證據鏈。若你算得明白，便當眾揭開它。」']
+    ['「想結盟，先查盟書哪句是假的。不能只看幾個例子，就信了每個都是。」','「請拿出一個能推翻假話的反例，再把錯誤敘述修正。沒有證據，我不會蓋印。」'],
+    ['「冷宮的人，數得最清楚的就是箱裡還剩幾份糧。」','「把40份糧磚補成完整正方形，不能少放，也不要多補。請先排給我看。」'],
+    ['「軍營不只要點兵，還要查兵符。234、245、252，只有一個編碼過得了兩道關。」','「先查末兩位，再查數字和。只因個位是偶數就放行，可是會出事的。」'],
+    ['「我能替你守住這道門，卻不能把錯誤的暗號放進去。」','「甲班留下除4的餘數，乙班留下除6的餘數。還得核對範圍，別拿舊門牌冒充。」'],
+    ['「十二處宮門，你竟真走到了這裡。可零碎的指控，動不了朕的印。」','「把最小質因數、對應因數與完整分解連成一條能回驗的證據鏈。若你算得明白，便當眾揭開它。」']
   ];
   $('dialog-question').onclick=()=>{
     dialogueLines=[state.current===11?'「朕問的是：你的三份證據，能否互相證明，而不是剛好算出三個數字？」':'「你問誰動過手腳？我只見到記錄被改過，還沒有能指認任何人的證據。」',`「先把${puzzles[state.current].clues.map(c=>c.title).join('、')}交叉核對。讓物證說話，比猜測更有力。」`];
@@ -244,19 +247,22 @@
   let finalFactors=[];
   function deriveMechanism(i) {
     const v=values();
-    if([3,5,9].includes(i)){
+    if(i===3){
       const totals=config[i].totals;
       v[1]=Math.floor(totals[0]/v[0]);v[2]=Math.floor(totals[1]/v[0]);
     }
-    if(i===8){v[1]=Math.floor(v[0]/6)*4+Math.floor(v[0]/8)*6;v[2]=40+v[1]-v[0];}
+    if(i===0)v[1]=7+v[0];
+    if(i===1){v[1]=Math.floor(v[0]/5);v[2]=Math.floor(v[0]/3);}
+    if(i===5){const picked=state.levels[i].pairs;const numbers=[...new Set(picked.flatMap(n=>pairOptions[n]))].sort((a,b)=>a-b);v[0]=picked.length;v[1]=numbers.length;v[2]=numbers.length%2?numbers[Math.floor(numbers.length/2)]:0;}
+    if(i===8){v[1]=Math.max(0,v[0]*v[0]-40);v[2]=v[0]*v[0];}
+    if(i===9){const number=[234,245,252][v[0]-1];v[1]=number%100;v[2]=String(number).split('').reduce((a,b)=>a+Number(b),0);}
+    if(i===10){v[1]=Math.floor(v[0]/4);v[2]=Math.floor(v[0]/6);}
     for(let n=0;n<3;n++){const input=$('value-'+n);if(input)input.value=v[n];const range=$('range-'+n);if(range)range.value=v[n];}
   }
-  function setValue(n,value){const i=state.current,min=i===2&&n===1?0:1;state.levels[i].values[n]=Math.max(min,Math.min(config[i].max[n],Number(value)||min));
+  function setValue(n,value){const i=state.current,min=minimum(i,n);state.levels[i].values[n]=Math.max(min,Math.min(config[i].max[n],Number(value)||min));
     if(i===11&&n<2){finalFactors=[];state.levels[i].factors=finalFactors;values()[2]=1;}
     const input=$('value-'+n);if(input)input.value=values()[n];const range=$('range-'+n);if(range)range.value=values()[n];
-    if(i===1){if($('garden-clock'))$('garden-clock').value=values()[2];if($('garden-clock-range'))$('garden-clock-range').value=values()[2];}
     deriveMechanism(i);save();visual();}
-  let contracts=['',''];
   const primeTrials={};
   function buildPuzzle(){
     const i=state.current,p=puzzles[i],l=state.levels[i],c=config[i];
@@ -267,25 +273,16 @@
     c.labels.forEach((label,n)=>{
       const dial=make('div','dial');const lab=make('label','',label);lab.htmlFor='value-'+n;const row=make('div','dial-row');
       const minus=make('button','','−'),plus=make('button','','＋');minus.setAttribute('aria-label',`減少${label}`);plus.setAttribute('aria-label',`增加${label}`);
-      const input=make('input');input.id='value-'+n;input.type='number';input.min=i===2&&n===1?'0':'1';input.max=c.max[n];input.step='1';input.value=l.values[n];input.inputMode='numeric';
+      const input=make('input');input.id='value-'+n;input.type='number';input.min=String(minimum(i,n));input.max=c.max[n];input.step='1';input.value=l.values[n];input.inputMode='numeric';
       input.oninput=()=>{if(input.value.trim()!==''&&Number.isInteger(Number(input.value)))setValue(n,input.value);};
       minus.onclick=()=>setValue(n,values()[n]-1);plus.onclick=()=>setValue(n,values()[n]+1);row.append(minus,input,plus);
       const range=make('input');range.id='range-'+n;range.type='range';range.min=input.min;range.max=input.max;range.value=l.values[n];range.setAttribute('aria-label',label+'滑桿');range.oninput=()=>setValue(n,range.value);
       dial.append(lab,row,range);$('puzzle-controls').append(dial);
     });
-    if(i===1){
-      const clock=make('div','garden-clock-control');const label=make('label','','逐分觀察巡園：開園後第幾分鐘？');label.htmlFor='garden-clock';
-      const input=make('input');input.type='number';input.id='garden-clock';input.min=1;input.max=60;input.value=l.values[2];input.inputMode='numeric';
-      input.oninput=()=>{if(input.value.trim()&&Number.isInteger(Number(input.value)))setValue(2,input.value);};
-      const next=make('button','','下一分鐘 →');next.id='garden-next-minute';next.onclick=()=>setValue(2,values()[2]+1);
-      const previous=make('button','','← 上一分鐘');previous.onclick=()=>setValue(2,values()[2]-1);
-      const slider=make('input');slider.type='range';slider.id='garden-clock-range';slider.min=1;slider.max=60;slider.value=l.values[2];slider.setAttribute('aria-label','巡園觀察分鐘滑桿');slider.oninput=()=>setValue(2,slider.value);
-      clock.append(label,previous,input,next,slider);$('puzzle-controls').append(clock);
-    }
-    contracts=l.complete?['gcd','lcm']:['',''];renderHint();visual();save();
-    if(!l.complete)deriveMechanism(i);
+    if(i===11)finalFactors=l.factors;
+    deriveMechanism(i);renderHint();
     for(let n=0;n<3;n++){
-      const generated=([3,5,8,9].includes(i)&&n>0)||(i===11&&n===2)||(i===2&&n<2)||(i===4&&n===0)||([1,6,10].includes(i)&&n===2);
+      const generated=(i===0)||(i===5)||(i===7)||(i===9)||(i===1&&n>0)||(i===8&&n>0)||(i===10&&n>0)||(i===3&&n>0)||(i===11&&n===2)||(i===2&&n<2)||(i===4&&n===0)||(i===6&&n===2);
       if(generated){$('value-'+n).readOnly=true;$('value-'+n).title='由機關操作產生，請操作上方圖像';$('range-'+n).hidden=true;
         const buttons=$('value-'+n).parentElement.querySelectorAll('button');buttons.forEach(b=>b.hidden=true);}
     }
@@ -294,35 +291,61 @@
   }
   function equation(text){$('puzzle-visual').append(make('p','visual-equation',text));}
   function note(text){$('puzzle-visual').append(make('p','visual-note',text));}
+  function choices(box,title,options,selected,action){
+    const section=make('section','deduction-section');section.append(make('h3','',title));const grid=make('div','deduction-choices');
+    for(const [value,label]of options){const b=make('button',Array.isArray(selected)?(selected.includes(value)?'selected':''):(selected===value?'selected':''),label);b.setAttribute('aria-pressed',String(Array.isArray(selected)?selected.includes(value):selected===value));b.onclick=()=>action(value);grid.append(b);}
+    section.append(grid);box.append(section);
+  }
+  function diverseVisual(i,box,v){
+    if(i===0){
+      choices(box,'補上帳冊末位：43□',Array.from({length:10},(_,n)=>[n,'填入末位'+n]),v[0],n=>setValue(0,n));
+      const number=430+v[0];equation(`帳冊 ${number} ｜ 數字和 4＋3＋${v[0]}＝${v[1]}`);
+      note(`2的查驗：${number%2===0?'個位為偶數，可整除':'個位為奇數，不可整除'}；9的查驗：數字和${v[1]}${v[1]%9===0?'可':'不可'}被9整除。`);
+      choices(box,'選出能由「同時被2與3整除」證成的整除令',[4,5,6,10].map(n=>[n,'整除令'+n]),v[2],n=>setValue(2,n));
+    }else if(i===1||i===10){
+      const garden=i===1,start=garden?10:25,end=garden?30:39,a=garden?5:4,b=garden?3:6;
+      choices(box,garden?'逐一查驗花燈密牌':'逐一查驗暗號門牌',Array.from({length:end-start+1},(_,n)=>[n+start,(garden?'試驗密牌':'查驗門牌')+(n+start)]),v[0],n=>setValue(0,n));
+      equation(`${v[0]} ＝ ${a} × ${v[1]} ＋ ${v[0]%a}`);equation(`${v[0]} ＝ ${b} × ${v[2]} ＋ ${v[0]%b}`);
+      note(garden?'東側要求除5餘2；西側要求除3餘1。兩份都符合才是密牌。':'門牌須大於24、小於40；甲班要求除4餘1，乙班要求除6餘3。商與餘數不要互換。');
+    }else if(i===5){
+      const picked=state.levels[i].pairs;
+      choices(box,'把所有合法配對收入帳簿（再按可移除）',pairOptions.map((p,n)=>[n,`配對 ${p[0]} × ${p[1]}`]),picked,n=>{
+        const at=picked.indexOf(n);if(at<0)picked.push(n);else picked.splice(at,1);deriveMechanism(i);save();visual();
+      });
+      const ledger=make('div','pair-ledger');for(const n of picked){const [a,b]=pairOptions[n];ledger.append(make('p',a*b!==36||a>b?'invalid-pair':'',`${a} × ${b} ＝ ${a*b}${a*b!==36?'：不是36':a>b?'：較小的數未在前，與翻轉配對重複':'：已收入配對'}`));}box.append(ledger);
+      const numbers=[...new Set(picked.flatMap(n=>pairOptions[n]))].sort((a,b)=>a-b);
+      equation(`已選 ${v[0]} 對 ｜ 不同數字 ${v[1]} 個`);note('帳簿中的不同數字：'+(numbers.join('、')||'尚未配對')+'。請先排除非法配對，再核對是否收齊；相同的6只能算一次。');
+    }else if(i===7){
+      choices(box,'第一步：指出錯誤說法',[[1,'說法1：每個奇數都是質數'],[2,'說法2：2是唯一偶質數'],[3,'說法3：1非質數也非合數']],v[0],n=>setValue(0,n));
+      choices(box,'第二步：選能推翻錯說的反例',[7,9,11].map(n=>[n,'反例信物'+n]),v[1],n=>setValue(1,n));
+      const factors=[];for(let n=1;n<=v[1];n++)if(v[1]%n===0)factors.push(n);equation(`信物 ${v[1]} 的正因數：${factors.join('、')}`);
+      choices(box,'第三步：換上正確修正句',[[1,'修正1：每個奇數都是質數'],[2,'修正2：奇數也可能是合數'],[3,'修正3：只有偶數才可能是合數']],v[2],n=>setValue(2,n));
+      note('反例要同時符合原句的前提，卻不符合結論；支持例子不能推翻「每個」的說法。');
+    }else if(i===8){
+      choices(box,'調整方陣每邊格數',[5,6,7,8].map(n=>[n,'排成 '+n+' × '+n]),v[0],n=>setValue(0,n));
+      const grid=make('div','square-board');grid.style.gridTemplateColumns=`repeat(${v[0]},1fr)`;
+      for(let n=0;n<v[2];n++){const tile=make('span',n>=40?'new-tile':'');tile.textContent=n>=40?'＋':'■';grid.append(tile);}box.append(grid);
+      equation(`${v[0]} × ${v[0]} ＝ ${v[2]} 格`);note(v[2]<40?`還有 ${40-v[2]} 份原有糧磚放不下，不能拿走；請擴大方陣。`:`原有40份 ＋ 補入${v[1]}份 ＝ ${v[2]}份；金色格為新增。能排下還不夠，新增量要最少。`);
+    }else if(i===9){
+      choices(box,'選一枚兵符，查驗兩個條件',[[1,'兵符1：234'],[2,'兵符2：245'],[3,'兵符3：252']],v[0],n=>setValue(0,n));
+      equation(`末兩位 ${v[1]} ÷ 4 ＝ ${Math.floor(v[1]/4)} … 餘 ${v[1]%4}`);
+      equation(`數字和 ${v[2]} ÷ 9 ＝ ${Math.floor(v[2]/9)} … 餘 ${v[2]%9}`);
+      note('真兵符必須兩道檢查都整除。234雖是偶數且數字和9，仍不能只憑這兩點判定被4整除。');
+    }
+  }
   function visual(){
     const i=state.current,c=config[i],v=values(),box=$('puzzle-visual');box.replaceChildren();
-    if(i===0){
-      const grid=make('div','packing-grid');const each=Math.floor(v[0]/v[1]),remaining=v[0]%v[1];
-      for(let n=0;n<v[1];n++){const bag=make('div','mini-bag');bag.append(make('div','orbs','●'.repeat(Math.min(each,16))),make('span','',`${each} 顆`));grid.append(bag);}box.append(grid);
-      equation(`${v[0]} ÷ ${v[1]} ＝ ${each}${remaining?' … 餘 '+remaining:''}`);note(`每袋至少5顆：${each>=5?'符合':'尚未符合'}；無剩餘：${remaining===0?'符合':'尚未符合'}。第三格目前記為 ${v[2]} 顆。總數仍須符合兩份分裝紀錄。`);
-    }else if([1,6,10].includes(i)){
-      if(i===1){
-        const board=make('div','garden-patrol-board');const t=v[2];
-        const at=v.map((_,n)=>n<2&&t>=c.offset[n]&&(t-c.offset[n])%v[n]===0);
-        const points=[0,1].map(n=>{
-          if(t<c.offset[n])return {x:45+n*70,y:330};
-          const angle=((t-c.offset[n])%v[n])/v[n]*Math.PI*2;
-          return {x:310+Math.sin(angle)*(n?260:200)+(at[0]&&at[1]?(n?12:-12):0),y:95+(1-Math.cos(angle))*(n?110:85)};
-        });
-        board.innerHTML='<svg viewBox="0 0 620 370" role="img" aria-label="兩隊侍衛的巡園路線及目前位置"><ellipse cx="310" cy="180" rx="200" ry="85" class="route-a"/><ellipse cx="310" cy="205" rx="260" ry="110" class="route-b"/>'+palaceSVG.replace('<svg viewBox','<svg x="230" y="-5" width="160" height="100" viewBox')+points.map((p,n)=>`<g transform="translate(${p.x} ${p.y})" class="guard guard-${n}"><circle r="18"/><text y="5" text-anchor="middle">${n?'乙':'甲'}</text></g>`).join('')+'<text x="20" y="365" class="route-caption">甲：第2分鐘起，每'+v[0]+'分鐘</text><text x="350" y="365" class="route-caption">乙：第4分鐘起，每'+v[1]+'分鐘</text></svg>';
-        box.append(board);
-        const status=make('p','garden-status',`第 ${t} 分鐘 · ${at[0]&&at[1]?'兩隊同時到亭':(at[0]?'甲隊到亭，乙隊仍在巡園':at[1]?'乙隊到亭，甲隊仍在巡園':'兩隊尚未同時到亭')}`);status.id='garden-status';status.setAttribute('aria-live','polite');box.append(status);
-      }
+    if(diverse.includes(i)){diverseVisual(i,box,v);return;}
+    if(i===6){
       const max=60;
-      for(let n=0;n<2;n++){const track=make('div','time-track');track.append(make('b','',i===6?(n?'舞隊':'鼓隊'):i===10?(n?'乙班':'甲班'):(n?'乙隊':'甲隊')));
-        if(i===10){const ban=make('div');ban.style.cssText='position:absolute;left:33.333%;width:13.333%;height:100%;background:#ae513f66';track.append(ban);}
+      for(let n=0;n<2;n++){const track=make('div','time-track');track.append(make('b','',n?'舞隊':'鼓隊'));
         for(let t=c.offset[n];t<=max;t+=v[n]){const marker=make('span');marker.style.left=(t/max*100)+'%';track.append(marker);}
         const cursor=make('span','cursor');cursor.style.left=v[2]/max*100+'%';track.append(cursor);track.setAttribute('aria-label',`${n?'乙':'甲'}隊時間軸，從${c.offset[n]}起，每隔${v[n]}分鐘`);box.append(track);
       }
       const nav=make('div','timeline-nav');for(const t of [12,16,20,24,28,36,48,60]){const b=make('button',t===v[2]?'selected':'',String(t)+' 分');b.onclick=()=>setValue(2,t);nav.append(b);}box.append(nav);
       const meet=v[2]>=c.offset[0]&&v[2]>=c.offset[1]&&(v[2]-c.offset[0])%v[0]===0&&(v[2]-c.offset[1])%v[1]===0;
       equation(`第 ${v[2]} 分鐘 · ${meet?'兩排標記重合':'兩排標記尚未重合'}`);
-      note(i===10?`禁行窗20–28分鐘（含端點）：${v[2]>=20&&v[2]<=28?'目前落在禁行窗':'目前在禁行窗外'}。仍須找最早可用時刻。`:i===6?`從11時起算，目前11時${String(v[2]).padStart(2,'0')}分；要在11時20分或之後。`:'注意兩隊起點不同：甲第2分鐘、乙第4分鐘。用線索校準間隔後，再找最早重合。');
+      note(`從11時起算，目前11時${String(v[2]).padStart(2,'0')}分；要在11時20分或之後。`);
     }else if(i===2){
       const rack=make('div','jar-grid');for(const n of [31,33,35,37,39,41]){const b=make('button','jar'+(n===v[0]?' selected':''),String(n));b.append(make('small','','藥方編號'));b.onclick=()=>setValue(0,n);rack.append(b);}box.append(rack);
       const trial=make('section','prime-trial');trial.append(make('h3','','藥方查驗臺'));
@@ -342,20 +365,9 @@
       const tree=make('div','factor-tree');tree.append(make('span','factor-token','72'),make('span','','＝'),make('span','factor-token',`${v[0]}^${v[1]}`),make('span','','×'),make('span','factor-token',`3^${v[2]}`));box.append(tree);
       const shelf=make('div','factor-shelf');for(const prime of [2,3,5,7]){const b=make('button','',String(prime));b.setAttribute('aria-label',`選擇質底數${prime}`);b.onclick=()=>setValue(0,prime);shelf.append(b);}box.append(shelf);
       equation(`${v[0]}^${v[1]} × 3^${v[2]} ＝ ${Math.pow(v[0],v[1])*Math.pow(3,v[2])}`);note('鎖盤分別控制質底數、左側指數、右側指數。乘積相同之外，也要符合書脊指定的底數條件。');
-    }else if(i===5||i===9){
-      const grid=make('div','unit-grid');for(let n=0;n<Math.min(v[0],60);n++){const group=make('div','unit');group.append(make('span','',i===9?'♜':'◈'),make('b','',`第${n+1}${i===9?'隊':'份'}`),make('div','',`${v[1]} ${i===9?'弓':'銀'} / ${v[2]} ${i===9?'槍':'米'}`));grid.append(group);}box.append(grid);
-      equation(`${v[0]} × ${v[1]} ＝ ${v[0]*v[1]} / ${c.totals[0]}　｜　${v[0]} × ${v[2]} ＝ ${v[0]*v[2]} / ${c.totals[1]}`);
-      note(`尚未分配：${i===9?'弓手':'銀錢'} ${c.totals[0]-v[0]*v[1]}、${i===9?'槍手':'米糧'} ${c.totals[1]-v[0]*v[2]}。負數表示超用；兩類都須恰好分完。`);
-    }else if(i===7){
-      const grid=make('div','contract-grid');['分禮盟約','送信盟約'].forEach((name,n)=>{const card=make('div','contract');card.append(make('h3','',name));for(const [key,text]of[['gcd','最大公因數'],['lcm','最小公倍數']]){const b=make('button',contracts[n]===key?'selected':'',text);b.onclick=()=>{contracts[n]=key;visual();};card.append(b);}grid.append(card);});box.append(grid);
-      equation(`${v[0]} ＋ ${v[1]} ＝ ${v[0]+v[1]} → 盟印目前 ${v[2]}`);note('先把兩份盟約分到適合的方法，再填數值。不能只看「最多」「最少」而忽略分組與同步的結構。');
-    }else if(i===8){
-      const chart=make('div','supply-chart');let stock=40,added=0;
-      for(let day=1;day<=v[0];day++){let gain=0;if(day%6===0)gain+=4;if(day%8===0)gain+=6;stock+=gain-1;added+=gain;const bar=make('i',gain?'':'used');bar.style.height=Math.max(3,Math.min(150,stock*2))+'px';bar.title=`第${day}日：入庫${gain}份、消耗1份後剩${stock}份`;chart.append(bar);}box.append(chart);
-      const labels=make('div','supply-labels');labels.append(make('span','','第1日'),make('span','',`第${v[0]}日`));box.append(labels);equation(`原有40 ＋ 新收${added} − 消耗${v[0]} ＝ ${stock}`);note('綠柱為當日有補給，紅柱為當日只有消耗。圖表計入盤點當天；盤點日期還須符合兩路首次再次同日到達。');
     }else{
-      const chain=make('div','evidence-lock');['賞賜證據','時序證據','密詔回驗'].forEach((label,n)=>{const cell=make('span','',String(v[n]));cell.append(make('small','',label));chain.append(cell);});box.append(chain);
-      equation(`密詔原數 N ＝ ${v[0]} × ${v[1]} ＝ ${v[0]*v[1]}`);note('第三格必須用前兩格乘積重新質因數分解，將重複出現的質數分別計數。三項證據缺一不可。');
+      const chain=make('div','evidence-lock');['最小質因數','對應因數','分解回驗'].forEach((label,n)=>{const cell=make('span','',String(v[n]));cell.append(make('small','',label));chain.append(cell);});box.append(chain);
+      equation(`密詔原數 N ＝ ${v[0]} × ${v[1]} ＝ ${v[0]*v[1]}`);note('前兩格的乘積必須回到36；第三格再完整質因數分解，將重複出現的質數分別計數。三項證據缺一不可。');
       const product=finalFactors.reduce((a,b)=>a*b,1),remaining=v[0]*v[1]/product;
       equation(`尚待分解 ${remaining}　｜　已拆出 ${finalFactors.length} 個質因數`);
       const shelf=make('div','factor-shelf');for(const prime of [2,3,5,7]){const b=make('button','',`拆出 ${prime}`);b.setAttribute('aria-label','拆出質因數'+prime);b.disabled=remaining===1||remaining%prime!==0;b.onclick=()=>{finalFactors.push(prime);state.levels[i].factors=finalFactors;v[2]=finalFactors.length;$('value-2').value=v[2];save();visual();};shelf.append(b);}const reset=make('button','','重排分解');reset.onclick=()=>{finalFactors=[];state.levels[i].factors=finalFactors;v[2]=1;$('value-2').value=1;save();visual();};shelf.append(reset);box.append(shelf);
@@ -366,10 +378,9 @@
   $('hint').onclick=()=>{const l=state.levels[state.current];l.hints=Math.min(3,l.hints+1);renderHint();save();};
   $('verify').onclick=()=>{
     const i=state.current,p=puzzles[i],l=state.levels[i];
-    if(i===7&&(contracts[0]!=='gcd'||contracts[1]!=='lcm')){$('puzzle-feedback').textContent='兩份盟約需要不同的推理方法；先把分禮與送信分別歸類，再驗證數值。';return;}
     if(i===11&&!l.complete&&finalFactors.reduce((a,b)=>a*b,1)!==values()[0]*values()[1]){$('puzzle-feedback').textContent='密詔還未完整拆解：請操作質數籌碼，直到尚待分解數值為1，再提出證據。';return;}
     const submitted=config[i].labels.map((_,n)=>$('value-'+n).value);const result=core.verify(state,i,submitted,p);save();tone(result.correct);
-    if(!result.correct){$('puzzle-feedback').textContent=result.reason==='input'?'請填入控制盤允許範圍內的整數。':'機關沒有開啟：目前組合尚未同時滿足三份線索。對照圖像、餘數與條件，再調整一次。';renderHint();return;}
+    if(!result.correct){$('puzzle-feedback').textContent=result.reason==='operation'?'請找齊所有合法配對，排除錯誤乘積與翻轉重複，再提出證據。':result.reason==='input'?'請填入控制盤允許範圍內的整數。':'機關沒有開啟：目前組合尚未同時滿足三份線索。對照圖像、餘數與條件，再調整一次。';renderHint();return;}
     $('puzzle-feedback').textContent='三份線索相互吻合，機關已開啟。';renderClues();
     if(result.already)return;
     $('victory-cg').hidden=i>=materialCG.length;
